@@ -27,10 +27,11 @@ def count_submissions_by_region(folder_name):
         counter+=1
     return counter
 
+#Basic run function to print a count of submissions by region
 regions = ["Americas", "APAC", "MEA", "CEE", "Western Europe"]
 for x in regions:
-    print x
-    print count_submissions_by_region(x)
+    print "%s: %i submissions" % (x, count_submissions_by_region(x))
+
 
 
 
