@@ -32,12 +32,6 @@ for x in regions:
     print x
     print count_submissions_by_region(x)
 
-# Raw function to print all subject lines of submissions
-#for fname in folder_names:
-#    print fname
-#    f=get_folder(fname)
-#    for submission in f.all():
-#        print (submission.subject)
 
 
 
