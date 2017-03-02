@@ -1,20 +1,27 @@
+
+
 import json
 import sqlite3
 import sys
+import config
 
 from exchangelib import Account, Credentials, DELEGATE
+
 # from exchangelib.folders import FileAttachment
 
 # Credentials for access to mailbox
-with open("CREDENTIALS.json") as j:
-    text = j.readline()
-    d = json.loads(text)
-
-credentials = Credentials(username=d["UID"], password=d["PWD"])
+# Ignore if in debug mode when working with a spoof message
+if not config.debug:
+    with open("CREDENTIALS.json") as j:
+        text = j.readline()
+        d = json.loads(text)
+    credentials = Credentials(username=d["UID"], password=d["PWD"])
 
 # Referencing Exchange account to fetch submissions from the projectproposal mailbox
-account = Account(primary_smtp_address="projectproposals@business-sweden.se", credentials=credentials,
-                  autodiscover=True, access_type=DELEGATE)
+# Ignore if in debug mode when working with a spoof message
+if not config.debug:
+    account = Account(primary_smtp_address="projectproposals@business-sweden.se", credentials=credentials,
+                      autodiscover=True, access_type=DELEGATE)
 
 # Obtain connection to database
 DB = sqlite3.connect("submissions.db")
@@ -56,20 +63,25 @@ def download_attachments(folder_name):
     #    store_attachment(item.)
     pass
 
-#Test method to try attachment download
+
+# Test method to try attachment download
 def download_one_attachment(folder_name):
     f = get_folder(folder_name)
     all_items = []
     for item in f.all():
         all_items.append(item)
-    # Drop to shell to test code
-    #import code
-    #code.interact(local=locals())
-    filename = all_items[0].attachments[0].name
-    submitter=all_items[0].author.email_address
-    region=all_items[0].subject[:4]
-    date=all_items[0].datetime_received #need to find the __tostring__ function
-    attachment_id=all_items[0].attachments[0].attachment_id
+
+    #Drop to shell to test code
+    import code
+    code.interact(local=locals())
+
+    # filename = all_items[0].attachments[0].name
+    # submitter = all_items[0].author.email_address
+    # region = all_items[0].subject[:4]
+    # date = all_items[0].datetime_received  # need to find the __tostring__ function
+    # attachment_id = all_items[0].attachments[0].attachment_id
+
+
 
 # Downloads an attachment into database given a subject line
 def download_attachment(folder_name, subject):
@@ -88,5 +100,19 @@ def count_all():
         print "%s: %i submissions" % (x, count_submissions_by_region(x))
 
 
-# Execution lines
-download_one_attachment("Americas")
+
+
+# Test lines
+if config.debug:
+    print("Entering test/debug mode")
+    from MyMessage import MyMessage
+    m = MyMessage()
+    testmail = m.get_message()
+    print(testmail.subject)
+    #Drop to shell to test code
+    import code
+    code.interact(local=locals())
+else:
+    print("Entering live mode with connection to Exchange server")
+    download_one_attachment("Americas")
+    #print("No production lines present")
