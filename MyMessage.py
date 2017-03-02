@@ -1,5 +1,6 @@
 import exchangelib as exc
-
+import exchangelib.ewsdatetime as ews
+import datetime
 
 class Account(object):
     pass
@@ -24,10 +25,13 @@ class MyMessage:
         #     access_type=exc.DELEGATE
         # )
 
+        time = ews.EWSDateTime(2017, 03, 02, 23, 29)
+
         self.m = exc.Message(
-            subject="Test",
+            subject="[AM] Test",
             sender="Foo@Bar",
             body="<html><head></head><body><p>Test message</p></body></html>",
+            datetime_sent = time
         )
         with open("Testfile.xlsm", mode='rb') as f:
             file_contents = f.read()
