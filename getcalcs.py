@@ -5,7 +5,7 @@ import config
 
 from DBhelper import DBHelper
 from exchangelib import Account, Credentials, DELEGATE
-from excel
+from excel_parser import ExcelParser
 
 # Credentials for access to mailbox
 # Ignore if in debug mode when working with a spoof message
@@ -109,7 +109,9 @@ def insert_testmessage():
 if config.debug:
     tempfile=db.get_file_by_id(13)
     print 'Temporary file "%s" created' % tempfile
-
+    parser=ExcelParser(tempfile)
+    office=parser.get_lead_office()
+    print office
 
     # Drop to shell to test code
     #import code
