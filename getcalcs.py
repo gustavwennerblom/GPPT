@@ -1,15 +1,11 @@
 
 
 import json
-import sqlite3
-import sys
 import config
-
 
 from DBhelper import DBHelper
 from exchangelib import Account, Credentials, DELEGATE
-
-# from exchangelib.folders import FileAttachment
+from excel
 
 # Credentials for access to mailbox
 # Ignore if in debug mode when working with a spoof message
@@ -26,17 +22,6 @@ if not config.debug:
                       autodiscover=True, access_type=DELEGATE)
 
 db = DBHelper()
-# Obtain connection to database
-# DB = sqlite3.connect("submissions.db")
-# try:
-#     cur = DB.cursor()
-# except DB.Error, e:
-#     print "Error accessing database: %s" % e.args[0]
-#     sys.exit(1)
-# finally:
-#     if DB:
-#         DB.close()
-
 
 # Function to return a folder given a folder name
 def get_folder(name):
@@ -102,25 +87,33 @@ def count_all():
     for x in regions:
         print "%s: %i submissions" % (x, count_submissions_by_region(x))
 
+# Subrouting for testing. Inserts a spoof message into the database
+def insert_testmessage():
+    if config.debug:
+        print("Entering test/debug mode")
+        from MyMessage import MyMessage
+        m = MyMessage()
+        testmail = m.get_message()
+        print "Subject: %s" % testmail.subject
+        print "File: %s" % testmail.attachments[0].name
+        print "From: %s" % testmail.sender
+        print "Date: %s" % testmail.datetime_sent
+        print "Id: %s" % testmail.attachments[0].attachment_id
+
+        db.insert(testmail.attachments[0].name, testmail.sender, testmail.subject, str(testmail.datetime_sent), str(testmail.attachments[0].attachment_id), testmail.attachments[0].content)
+        db.close()
+    else:
+        print "Subroutine not intended for production use. Set debug=True in config.py to use"
 
 
-
-# Test lines
 if config.debug:
-    print("Entering test/debug mode")
-    from MyMessage import MyMessage
-    m = MyMessage()
-    testmail = m.get_message()
-    #print "Subject: %s" % testmail.subject
-    #print "File: %s" % testmail.attachments[0].name
-    #print "From: %s" % testmail.sender
-    #print "Date: %s" % testmail.datetime_sent
-    #print "Id: %s" % testmail.attachments[0].attachment_id
-    #Drop to shell to test code
+    tempfile=db.get_file_by_id(13)
+    print 'Temporary file "%s" created' % tempfile
+
+
+    # Drop to shell to test code
     #import code
     #code.interact(local=locals())
-    db.insert(testmail.attachments[0].name, testmail.sender, testmail.subject, str(testmail.datetime_sent), str(testmail.attachments[0].attachment_id), testmail.attachments[0].content)
-    db.close_conn()
 
 else:
     print("Entering live mode with connection to Exchange server")

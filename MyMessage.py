@@ -1,9 +1,8 @@
+
+
 import exchangelib as exc
 import exchangelib.ewsdatetime as ews
 import datetime
-
-class Account(object):
-    pass
 
 
 class MyMessage:
@@ -30,10 +29,26 @@ class MyMessage:
         self.m = exc.Message(
             subject="[AM] Test",
             sender="Foo@Bar",
-            body="<html><head></head><body><p>Test message</p></body></html>",
+            body="Test message",
             datetime_sent = time
         )
-        with open("Testfile.xlsm", mode='rb') as f:
+
+        import os
+        cwd=os.getcwd()
+        filenames=os.listdir(cwd+u"/calcs")
+        try:
+            os.chdir("./calcs")
+            print("Accessing: %s" % filenames[0] + str(type(filenames[0])))
+            f=open(filenames[0], mode='rb')
             file_contents = f.read()
-            att = exc.folders.FileAttachment(name="Testfile.xlsm", content=file_contents, attachment_id=exc.folders.AttachmentId("ABC1234"))
+            att = exc.folders.FileAttachment(name=filenames[0], content=file_contents, attachment_id=exc.folders.AttachmentId("ABC1234"))
             self.m.attach(att)
+            f.close()
+            os.chdir("..")
+        except IOError:
+            print("Error opening file %s. Exiting." % filenames[0])
+            import sys
+            sys.exit(0)
+
+
+
