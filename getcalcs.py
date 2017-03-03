@@ -110,8 +110,10 @@ if config.debug:
     tempfile=db.get_file_by_id(13)
     print 'Temporary file "%s" created' % tempfile
     parser=ExcelParser(tempfile)
-    office=parser.get_lead_office()
-    print office
+    print parser.get_lead_office()
+    print parser.get_margin()
+    print parser.get_project_fee()
+    print parser.get_hours_by_role()
 
     # Drop to shell to test code
     #import code
