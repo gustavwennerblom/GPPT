@@ -38,10 +38,10 @@ class MyMessage:
         filenames=os.listdir(cwd+u"/calcs")
         try:
             os.chdir("./calcs")
-            print("Accessing: %s" % filenames[0] + str(type(filenames[0])))
-            f=open(filenames[0], mode='rb')
+            print("Accessing: %s" % filenames[2] + str(type(filenames[0])))
+            f=open(filenames[2], mode='rb')
             file_contents = f.read()
-            att = exc.folders.FileAttachment(name=filenames[0], content=file_contents, attachment_id=exc.folders.AttachmentId("ABC1234"))
+            att = exc.folders.FileAttachment(name=filenames[2], content=file_contents, attachment_id=exc.folders.AttachmentId("ABC1234"))
             self.m.attach(att)
             f.close()
             os.chdir("..")

@@ -105,19 +105,31 @@ def insert_testmessage():
     else:
         print "Subroutine not intended for production use. Set debug=True in config.py to use"
 
-
-if config.debug:
-    tempfile=db.get_file_by_id(13)
+# Reviews an xlsm file in the database and prints to stdout a set of data about it
+def analyze_submission(db_id):
+    tempfile=db.get_file_by_id(db_id)
     print 'Temporary file "%s" created' % tempfile
     parser=ExcelParser(tempfile)
-    print parser.get_lead_office()
-    print parser.get_margin()
-    print parser.get_project_fee()
+    print "Lead office: %s" % parser.get_lead_office()
+    print "Project margin: %s" % parser.get_margin()
+    print "Total fee: %s" % parser.get_project_fee()
+    print "Total hours: %s" % parser.get_total_hours()
+    print "By role: "
     print parser.get_hours_by_role()
-
+    print "Blended hourly rate: %s" % parser.get_blended_hourly_rate()
+    print "Pricing method: %s" % parser.assess_pricing_method()
     # Drop to shell to test code
     #import code
     #code.interact(local=locals())
+
+
+
+if config.debug:
+    #USE BELOW TO INSERT A TEST MESSAGE IN THE DATABASE (CONFIGURE TEST MESSAGE IN MyMessage.py
+    #insert_testmessage()
+
+    #USE BELOW TO CHECK XLSM ANALYTICS
+    #analyze_submission(18)
 
 else:
     print("Entering live mode with connection to Exchange server")
