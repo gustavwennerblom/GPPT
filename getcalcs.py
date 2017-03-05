@@ -24,10 +24,27 @@ def count_submissions_by_region(folder_name, account):
     return counter
 
 
-def store_attachment(filename, submitter, region, date, checksum, attachment):
-    # with DB:
-    #    cur=DB.cursor()
-    #    cur.execute("INSERT INTO ")
+# Stores a submission received as an email message into the database. Returns the database index of that submission
+def store_submission(mess):
+
+    print "Inserting submission message with:"
+    print "\t Subject: %s" % mess.subject
+    print "\t File: %s" % mess.attachments[0].name
+    print "\ From: %s" % mess.sender
+    print "\t Date: %s" % mess.datetime_sent
+    print "\t Id: %s" % mess.attachments[0].attachment_id
+
+    insert_index = db.insert_message(mess.attachments[0].name,
+                                     mess.sender,
+                                     mess.subject,
+                                     str(mess.datetime_sent),
+                                     str(mess.attachments[0].attachment_id),
+                                     mess.attachments[0].content)
+
+    return insert_index
+
+
+def store_analysis():
     pass
 
 
@@ -47,25 +64,12 @@ def download_one_attachment(folder_name, account):
     for item in f.all():
         all_items.append(item)
 
-    # Drop to shell to test code
-    import code
-    code.interact(local=locals())
-
+    return all_items[0]
     # filename = all_items[0].attachments[0].name
     # submitter = all_items[0].author.email_address
     # region = all_items[0].subject[:4]
     # date = all_items[0].datetime_received  # need to find the __tostring__ function
     # attachment_id = all_items[0].attachments[0].attachment_id
-
-
-# Downloads an attachment into database given a subject line
-def download_attachment(folder_name, subject):
-    pass
-
-
-# Generates a checksum for the file
-def generate_hash(attachment):
-    pass
 
 
 # Basic run function to print a count of submissions by region
@@ -76,6 +80,7 @@ def count_all(account):
 
 
 # Subrouting for testing. Inserts a spoof message into the database
+# Overridden by store_attacment(mess)
 def insert_testmessage():
     if config.debug:
         print("Entering test/debug mode")
@@ -88,25 +93,46 @@ def insert_testmessage():
         print "Date: %s" % testmail.datetime_sent
         print "Id: %s" % testmail.attachments[0].attachment_id
 
-        db.insert(testmail.attachments[0].name, testmail.sender, testmail.subject, str(testmail.datetime_sent), str(testmail.attachments[0].attachment_id), testmail.attachments[0].content)
+        db.insert_message(testmail.attachments[0].name, testmail.sender, testmail.subject, str(testmail.datetime_sent),
+                          str(testmail.attachments[0].attachment_id), testmail.attachments[0].content)
         db.close()
     else:
         print "Subroutine not intended for production use. Set debug=True in config.py to use"
 
 
 # Reviews an xlsm file in the database and prints to stdout a set of data about it
+# noinspection PyDictCreation
 def analyze_submission(db_id):
     tempfile = db.get_file_by_id(db_id)
-    print 'Temporary file "%s" created' % tempfile
     parser = ExcelParser(tempfile)
-    print "Lead office: %s" % parser.get_lead_office()
-    print "Project margin: %s" % parser.get_margin()
-    print "Total fee: %s" % parser.get_project_fee()
-    print "Total hours: %s" % parser.get_total_hours()
-    print "By role: "
-    print parser.get_hours_by_role()
-    print "Blended hourly rate: %s" % parser.get_blended_hourly_rate()
-    print "Pricing method: %s" % parser.assess_pricing_method()
+    # print 'Temporary file "%s" created' % tempfile
+    # print "Lead office: %s" % parser.get_lead_office()
+    # print "Project margin: %s" % parser.get_margin()
+    # print "Total fee: %s" % parser.get_project_fee()
+    # print "Total hours: %s" % parser.get_total_hours()
+    # print "By role: "
+    # print parser.get_hours_by_role()
+    # print "Blended hourly rate: %s" % parser.get_blended_hourly_rate()
+    # print "Pricing method: %s" % parser.assess_pricing_method()
+
+    # build dict to pass to database
+    d = {}
+    d["lead_office"] = parser.get_lead_office()
+    d["project_margin"] = parser.get_margin()
+    d["total_fee"] = parser.get_project_fee()
+    d["total_hours"] = parser.get_total_hours()
+    d["hours_by_role"] = parser.get_hours_by_role()  # Note: This returns a dict
+    d["blended_hourly_rate"] = parser.get_blended_hourly_rate()
+    d["pricing_method"] = parser.assess_pricing_method()
+
+    db.insert_analysis(db_id, lead_office=parser.get_lead_office(),
+                       project_margin=parser.get_margin(),
+                       total_fee=parser.get_project_fee(),
+                       total_hours=parser.get_total_hours(),
+                       hours_by_role=parser.get_hours_by_role(),
+                       blended_hourly_rate=parser.get_blended_hourly_rate(),
+                       pricing_method=parser.assess_pricing_method())
+
     # Drop to shell to test code
     # import code
     # code.interact(local=locals())
@@ -129,16 +155,23 @@ def main():
                           autodiscover=True, access_type=DELEGATE)
 
     if config.debug:
-        pass
         # USE BELOW TO INSERT A TEST MESSAGE IN THE DATABASE (CONFIGURE TEST MESSAGE IN MyMessage.py
         # insert_testmessage()
-
-        # USE BELOW TO CHECK XLSM ANALYTICS
-        # analyze_submission(18)
+        from MyMessage import MyMessage
+        m = MyMessage()
+        mess = m.get_message()
     else:
         print("Entering live mode with connection to Exchange server")
-        download_one_attachment("Americas", account)
+        mess = download_one_attachment("Americas", account)
         # print("No production lines present")
+
+    # Three lines to first insert the file (with metadata), analyze the file, and close the connection
+    insert_index = store_submission(mess).fetchone()[0]
+    analyze_submission(insert_index)
+    db.close()
+
+    # USE BELOW TO CHECK XLSM ANALYTICS
+    # analyze_submission(18)
 
 if __name__ == '__main__':
     main()

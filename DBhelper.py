@@ -3,35 +3,64 @@ import sqlite3
 
 class DBHelper:
 
-    def insert(self, filename, submitter, region, date, attachment_id, attachment):
+    # Inserts an set of data as a new row in the database. Returns the index of that last insert.
+    def insert_message(self, filename, submitter, region, date, attachment_id, attachment):
         self.cur.execute(
-            '''INSERT INTO Test_Submissions
+            '''INSERT INTO Test_SubmissionsB
             (Filename, Submitter, Region, Date, Attachment_Id, Attachment_Binary)
             VALUES (?, ?, ?, ?, ?, ?)''',
             (filename, submitter, region, date, attachment_id, sqlite3.Binary(attachment))
         )
         self.conn.commit()
-        print("Insert committed to database.")
+        print("Quote master data and file committed to database.")
 
-    def commit_and_close(self):
-        pass
+        i = self.cur.execute("SELECT last_insert_rowid()")
+        return i
+
+        # Perhaps a conn.close is needed here?
+
+    def insert_analysis(self, db_id, **kwargs):
+        self.cur.execute(
+            '''UPDATE Test_SubmissionsB SET
+            Lead_Office=(?),
+            P_Margin=(?),
+            Tot_Fee=(?),
+            Blended_Rate=(?),
+            Tot_Hours=(?),
+            Hours_Mgr=(?),
+            Hours_SPM=(?),
+            Hours_PM=(?),
+            Hours_Cons=(?),
+            Hours_Assoc=(?),
+            Method=(?)
+            WHERE ID = (?)''',
+            (kwargs["lead_office"], kwargs["project_margin"], kwargs["total_fee"], kwargs["blended_hourly_rate"],
+             kwargs["total_hours"], kwargs["hours_by_role"]["Manager"], kwargs["hours_by_role"]["SPM"],
+             kwargs["hours_by_role"]["PM"], kwargs["hours_by_role"]["Cons"], kwargs["hours_by_role"]["Assoc"],
+             kwargs["pricing_method"], db_id)
+        )
+
+        self.conn.commit()
+        print "Quote analysis inserted to database"
+
+        # Perhaps a conn.close is needed here?
 
     def close(self):
         self.conn.close()
         print("Database connection closed")
 
-    #retrieves a file from the database and returns the filename for it
-    def get_file_by_id(self,id):
-        row=self.cur.execute("SELECT (Attachment_Binary) FROM Test_Submissions WHERE (ID=?)", (id,)).fetchone()
-        tempfile_name="Written_From_DB.xlsm"
+    # Retrieves a file from the database and returns the filename for it
+    def get_file_by_id(self, i):
+        print "Retrieving file with database index %i" % i
+        row = self.cur.execute("SELECT (Attachment_Binary) FROM Test_SubmissionsB WHERE (ID=?)", (i,)).fetchone()
+        tempfile_name = "Written_From_DB.xlsm"
         tempfile_contents = row[0]
-        f=open(tempfile_name, "wb")
+        f = open(tempfile_name, "wb")
         f.write(tempfile_contents)
         f.close()
         return tempfile_name
 
-
     def __init__(self, dbname="submissions.db"):
-        self.dbname=dbname
+        self.dbname = dbname
         self.conn = sqlite3.Connection("submissions.db")
         self.cur = self.conn.cursor()

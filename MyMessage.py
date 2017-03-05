@@ -36,17 +36,18 @@ class MyMessage:
         import os
         cwd=os.getcwd()
         filenames=os.listdir(cwd+u"/calcs")
+        myfile=filenames[1]
         try:
             os.chdir("./calcs")
-            print("Accessing: %s" % filenames[2] + str(type(filenames[0])))
-            f=open(filenames[2], mode='rb')
+            print("Accessing: %s" % myfile + str(type(myfile)))
+            f=open(myfile, mode='rb')
             file_contents = f.read()
-            att = exc.folders.FileAttachment(name=filenames[2], content=file_contents, attachment_id=exc.folders.AttachmentId("ABC1234"))
+            att = exc.folders.FileAttachment(name=myfile, content=file_contents, attachment_id=exc.folders.AttachmentId("ABC1234"))
             self.m.attach(att)
             f.close()
             os.chdir("..")
         except IOError:
-            print("Error opening file %s. Exiting." % filenames[0])
+            print("Error opening file %s. Exiting." % myfile)
             import sys
             sys.exit(0)
 
