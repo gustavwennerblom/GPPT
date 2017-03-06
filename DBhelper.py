@@ -1,10 +1,35 @@
 import sqlite3
-
+from datetime import datetime
 
 class DBHelper:
 
-    # Inserts an set of data as a new row in the database. Returns the index of that last insert.
+    # Checks if a certain filename is already in the database
+    # Valid since all files have a timestamp in the filename
+
+    def update_timestamp(self):
+        timestamp = datetime.strftime(datetime.now(), "%Y-%m-%d-%H-%M-%S")
+        print timestamp
+        sql = "UPDATE Test_Last_Update SET Updated=? WHERE ID=1"
+        self.cur.execute(sql, (timestamp,))
+        self.conn.commit()
+
+    def get_timestamp(self):
+        sql="SELECT (Updated) FROM Test_Last_UPDATE WHERE ID=1"
+        return self.cur.execute(sql).fetchone()
+
+    def duplicate_file(self, filename):
+        sql = "SELECT Id FROM Test_SubmissionsB WHERE Filename = ?"
+        self.cur.execute(sql, (filename,))
+        if not self.cur.fetchone():
+            return False
+        else:
+            return True
+
+            # Inserts an set of data as a new row in the database. Returns the index of that last insert.
     def insert_message(self, filename, submitter, region, date, attachment_id, attachment):
+        if self.duplicate_file(filename):
+            raise ValueError("File is already in database")
+
         self.cur.execute(
             '''INSERT INTO Test_SubmissionsB
             (Filename, Submitter, Region, Date, Attachment_Id, Attachment_Binary)

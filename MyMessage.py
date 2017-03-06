@@ -2,13 +2,20 @@
 
 import exchangelib as exc
 import exchangelib.ewsdatetime as ews
-import datetime
+from datetime import datetime
 
 
 class MyMessage:
     # Instancing the class returns a default message
     def get_message(self):
         return self.m
+
+    # Converts a datetime object to EWStime (as EWS wants it)
+    def convert_to_EWStime(self, in_time):
+        timestring = datetime.strftime(in_time, "%Y-%m-%d-%H-%M")
+        t = timestring.split("-")
+        return ews.EWSDateTime(int(t[0]), int(t[1]), int(t[2]), int(t[3]), int(t[4]))
+
 
     def __init__(self):
         # credentials = exc.Credentials("foo", "bar", is_service_account=False)
@@ -24,7 +31,8 @@ class MyMessage:
         #     access_type=exc.DELEGATE
         # )
 
-        time = ews.EWSDateTime(2017, 03, 02, 23, 29)
+        # timestamps the message with current date and time
+        time = self.convert_to_EWStime(datetime.now())
 
         self.m = exc.Message(
             subject="[AM] Test",
@@ -36,7 +44,7 @@ class MyMessage:
         import os
         cwd=os.getcwd()
         filenames=os.listdir(cwd+u"/calcs")
-        myfile=filenames[1]
+        myfile=filenames[2]
         try:
             os.chdir("./calcs")
             print("Accessing: %s" % myfile + str(type(myfile)))

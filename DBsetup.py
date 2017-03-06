@@ -23,3 +23,8 @@ cur.execute('''CREATE TABLE IF NOT EXISTS Test_SubmissionsB (
     Hours_Assoc INTEGER,
     Method TEXT)
     ''')
+
+cur.execute('''CREATE TABLE IF NOT EXISTS Test_Last_Update (
+    Id INTEGER PRIMARY KEY,
+    Updated TEXT)
+    ''')

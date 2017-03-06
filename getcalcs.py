@@ -18,47 +18,29 @@ def get_folder(name, account):
 # Counts number of submissions in a given folder
 def count_submissions_by_region(folder_name, account):
     f = get_folder(folder_name, account)
-    counter = 0
-    for item in f.all():
-        counter += 1
-    return counter
+    # counter = 0
+    # for item in f.all():
+    #     counter += 1
+    # return counter
+    return f.total_count
 
 
 # Stores a submission received as an email message into the database. Returns the database index of that submission
 def store_submission(mess):
+    print "Inserting submission message with subject: %s" % mess.subject
 
-    print "Inserting submission message with:"
-    print "\t Subject: %s" % mess.subject
-    print "\t File: %s" % mess.attachments[0].name
-    print "\ From: %s" % mess.sender
-    print "\t Date: %s" % mess.datetime_sent
-    print "\t Id: %s" % mess.attachments[0].attachment_id
-
+    db.update_timestamp()
     insert_index = db.insert_message(mess.attachments[0].name,
                                      mess.sender,
                                      mess.subject,
                                      str(mess.datetime_sent),
                                      str(mess.attachments[0].attachment_id),
                                      mess.attachments[0].content)
-
     return insert_index
 
 
-def store_analysis():
-    pass
-
-
-# Downloads all attachments in a folder into a database, checking for duplicates
-# Possibly not needed? Overridden by 'store_attachment'?
-def download_attachments(folder_name):
-    # f = get_folder(folder_name)
-    # for item in f.all():
-    #    store_attachment(item.)
-    pass
-
-
 # Test method to try attachment download
-def download_one_attachment(folder_name, account):
+def get_one_message(folder_name, account):
     f = get_folder(folder_name, account)
     all_items = []
     for item in f.all():
@@ -83,15 +65,10 @@ def count_all(account):
 # Overridden by store_attacment(mess)
 def insert_testmessage():
     if config.debug:
-        print("Entering test/debug mode")
+        print("Entering test/debug mode: Inserting test message")
         from MyMessage import MyMessage
         m = MyMessage()
         testmail = m.get_message()
-        print "Subject: %s" % testmail.subject
-        print "File: %s" % testmail.attachments[0].name
-        print "From: %s" % testmail.sender
-        print "Date: %s" % testmail.datetime_sent
-        print "Id: %s" % testmail.attachments[0].attachment_id
 
         db.insert_message(testmail.attachments[0].name, testmail.sender, testmail.subject, str(testmail.datetime_sent),
                           str(testmail.attachments[0].attachment_id), testmail.attachments[0].content)
@@ -133,10 +110,6 @@ def analyze_submission(db_id):
                        blended_hourly_rate=parser.get_blended_hourly_rate(),
                        pricing_method=parser.assess_pricing_method())
 
-    # Drop to shell to test code
-    # import code
-    # code.interact(local=locals())
-
 
 def main():
 
@@ -162,13 +135,16 @@ def main():
         mess = m.get_message()
     else:
         print("Entering live mode with connection to Exchange server")
-        mess = download_one_attachment("Americas", account)
+        mess = get_one_message("Americas", account)
         # print("No production lines present")
 
     # Three lines to first insert the file (with metadata), analyze the file, and close the connection
-    insert_index = store_submission(mess).fetchone()[0]
-    analyze_submission(insert_index)
-    db.close()
+    try:
+        insert_index = store_submission(mess).fetchone()[0]
+        analyze_submission(insert_index)
+        db.close()
+    except ValueError as error:
+        print repr(error)
 
     # USE BELOW TO CHECK XLSM ANALYTICS
     # analyze_submission(18)
