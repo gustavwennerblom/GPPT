@@ -6,24 +6,32 @@ import config
 from DBhelper import DBHelper
 from exchangelib import Account, Credentials, DELEGATE
 from excel_parser import ExcelParser
-
+import exchangelib.ewsdatetime
+from datetime import datetime
 db = DBHelper()
 
 
 # Function to return a folder given a folder name
-def get_folder(name, account):
-    return account.inbox.get_folder_by_name(name)
+# ELIMINATED - TOO ATOMIZED
+# def get_folder(name, account):
+#    return account.inbox.get_folder_by_name(name)
 
 
 # Counts number of submissions in a given folder
 def count_submissions_by_region(folder_name, account):
-    f = get_folder(folder_name, account)
+    f = account.inbox.get_folder_by_name(folder_name)
     # counter = 0
     # for item in f.all():
     #     counter += 1
     # return counter
     return f.total_count
 
+# Converts a DateTime object to EWSDataTime
+# noinspection PyPep8Naming
+# def convert_to_EWStime(in_time):
+#     timestring = datetime.strftime(in_time, "%Y-%m-%d-%H-%M")
+#     t = timestring.split("-")
+#     return ews.EWSDateTime(int(t[0]), int(t[1]), int(t[2]), int(t[3]), int(t[4]))
 
 # Stores a submission received as an email message into the database. Returns the database index of that submission
 def store_submission(mess):
@@ -38,10 +46,23 @@ def store_submission(mess):
                                      mess.attachments[0].content)
     return insert_index
 
+# Returns list of emails received since last update of the database
+def get_new_messages(folder_name, account):
+    target_folder = account.inbox.get_folder_by_name(folder_name)
+    latest_update = db.get_timestamp()
+    latest_update_ews = exchangelib.EWSDateTime.from_datetime(latest_update)
+    ordered_submissions = target_folder.all().order_by('-datetime_received')
+    new_submissions=[]
+    for submission in ordered_submissions:
+        if submission.datetime_sent > latest_update_ews:
+            break
+        new_submissions.append(submission)
+
+    return new_submissions
 
 # Test method to try attachment download
 def get_one_message(folder_name, account):
-    f = get_folder(folder_name, account)
+    f = account.inbox.get_folder_by_name(folder_name)
     all_items = []
     for item in f.all():
         all_items.append(item)
@@ -111,6 +132,7 @@ def analyze_submission(db_id):
                        pricing_method=parser.assess_pricing_method())
 
 
+
 def main():
 
     # Credentials for access to mailbox
@@ -135,7 +157,13 @@ def main():
         mess = m.get_message()
     else:
         print("Entering live mode with connection to Exchange server")
-        mess = get_one_message("Americas", account)
+        db.set_timestamp(datetime(2017,01,01))
+        print("Resetting last update to 2017-01-01 to get all old messages (test)")
+        messages = get_new_messages("Americas", account)
+
+        import code
+        code.interact(local=locals())
+        # mess = get_one_message("Americas", account)
         # print("No production lines present")
 
     # Three lines to first insert the file (with metadata), analyze the file, and close the connection

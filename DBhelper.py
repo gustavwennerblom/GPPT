@@ -6,6 +6,12 @@ class DBHelper:
     # Checks if a certain filename is already in the database
     # Valid since all files have a timestamp in the filename
 
+    def set_timestamp(self, t):
+        timestamp = datetime.strftime(t, "%Y-%m-%d-%H-%M-%S")
+        sql = "UPDATE Test_Last_Update SET Updated=? WHERE ID=1"
+        self.cur.execute(sql, (timestamp,))
+        self.conn.commit()
+
     def update_timestamp(self):
         timestamp = datetime.strftime(datetime.now(), "%Y-%m-%d-%H-%M-%S")
         print timestamp
