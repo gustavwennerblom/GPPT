@@ -3,12 +3,13 @@
 import sqlite3
 conn = sqlite3.Connection("submissions.db")
 cur = conn.cursor()
-cur.execute('''CREATE TABLE IF NOT EXISTS Test_SubmissionsB (
+cur.execute('''CREATE TABLE IF NOT EXISTS Test_SubmissionsC (
     Id INTEGER PRIMARY KEY,
     Filename TEXT,
     Submitter TEXT,
     Region TEXT,
     Date TEXT,
+    Message_Id TEXT,
     Attachment_Id TEXT,
     Attachment_Binary BLOB,
     Lead_Office TEXT,

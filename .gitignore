@@ -1,0 +1,6 @@
+CREDENTIALS.json
+*.db
+*.pyc
+*.xls
+*.xlsm
+*.xlsx

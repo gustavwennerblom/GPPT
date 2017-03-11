@@ -42,6 +42,7 @@ def store_submission(mess):
                                      mess.sender,
                                      mess.subject,
                                      str(mess.datetime_sent),
+                                     str(mess.item_id),
                                      str(mess.attachments[0].attachment_id),
                                      mess.attachments[0].content)
     return insert_index

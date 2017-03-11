@@ -36,6 +36,7 @@ class MyMessage:
 
         self.m = exc.Message(
             subject="[AM] Test",
+            item_id = "DEF567",
             sender="Foo@Bar",
             body="Test message",
             datetime_sent = time

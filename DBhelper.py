@@ -24,7 +24,7 @@ class DBHelper:
         return self.cur.execute(sql).fetchone()
 
     def duplicate_file(self, filename):
-        sql = "SELECT Id FROM Test_SubmissionsB WHERE Filename = ?"
+        sql = "SELECT Id FROM Test_SubmissionsC WHERE Filename = ?"
         self.cur.execute(sql, (filename,))
         if not self.cur.fetchone():
             return False
@@ -32,15 +32,15 @@ class DBHelper:
             return True
 
             # Inserts an set of data as a new row in the database. Returns the index of that last insert.
-    def insert_message(self, filename, submitter, region, date, attachment_id, attachment):
+    def insert_message(self, filename, submitter, region, date, message_id, attachment_id, attachment):
         if self.duplicate_file(filename):
             raise ValueError("File is already in database")
 
         self.cur.execute(
-            '''INSERT INTO Test_SubmissionsB
-            (Filename, Submitter, Region, Date, Attachment_Id, Attachment_Binary)
-            VALUES (?, ?, ?, ?, ?, ?)''',
-            (filename, submitter, region, date, attachment_id, sqlite3.Binary(attachment))
+            '''INSERT INTO Test_SubmissionsC
+            (Filename, Submitter, Region, Date, Message_Id, Attachment_Id, Attachment_Binary)
+            VALUES (?, ?, ?, ?, ?, ?, ?)''',
+            (filename, submitter, region, date, message_id, attachment_id, sqlite3.Binary(attachment))
         )
         self.conn.commit()
         print("Quote master data and file committed to database.")
@@ -52,7 +52,7 @@ class DBHelper:
 
     def insert_analysis(self, db_id, **kwargs):
         self.cur.execute(
-            '''UPDATE Test_SubmissionsB SET
+            '''UPDATE Test_SubmissionsC SET
             Lead_Office=(?),
             P_Margin=(?),
             Tot_Fee=(?),
@@ -83,7 +83,7 @@ class DBHelper:
     # Retrieves a file from the database and returns the filename for it
     def get_file_by_id(self, i):
         print "Retrieving file with database index %i" % i
-        row = self.cur.execute("SELECT (Attachment_Binary) FROM Test_SubmissionsB WHERE (ID=?)", (i,)).fetchone()
+        row = self.cur.execute("SELECT (Attachment_Binary) FROM Test_SubmissionsC WHERE (ID=?)", (i,)).fetchone()
         tempfile_name = "Written_From_DB.xlsm"
         tempfile_contents = row[0]
         f = open(tempfile_name, "wb")
