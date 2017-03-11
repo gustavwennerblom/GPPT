@@ -41,8 +41,9 @@ class DBHelper:
 
             # Inserts an set of data as a new row in the database. Returns the index of that last insert.
     def insert_message(self, filename, submitter, region, date, message_id, attachment_id, attachment):
-        if self.duplicate_file(filename):
-            raise TypeError("File is already in database")
+        # if self.duplicate_file(filename):
+        #    raise TypeError("File is already in database")
+        #    return None
 
         self.cur.execute(
             '''INSERT INTO Test_SubmissionsC
@@ -53,7 +54,9 @@ class DBHelper:
         self.conn.commit()
         print("Quote master data and file committed to database.")
 
-        i = self.cur.execute("SELECT last_insert_rowid()")
+        i = self.cur.execute("SELECT last_insert_rowid()").fetchone()[0]
+        print i
+
         return i
 
         # Perhaps a conn.close is needed here?
@@ -90,7 +93,8 @@ class DBHelper:
 
     # Retrieves a file from the database and returns the filename for it
     def get_file_by_id(self, i):
-        print "Retrieving file with database index %i" % i
+
+        print "Retrieving file with database index %s" % i
         row = self.cur.execute("SELECT (Attachment_Binary) FROM Test_SubmissionsC WHERE (ID=?)", (i,)).fetchone()
         tempfile_name = "Written_From_DB.xlsm"
         tempfile_contents = row[0]

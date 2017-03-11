@@ -3,7 +3,7 @@
 import exchangelib as exc
 import exchangelib.ewsdatetime as ews
 from datetime import datetime
-
+import random
 
 class MyMessage:
     # Instancing the class returns a default message
@@ -45,20 +45,22 @@ class MyMessage:
         import os
         cwd=os.getcwd()
         filenames=os.listdir(cwd+u"/calcs")
-        myfile=filenames[1]
-        try:
-            os.chdir("./calcs")
-            print("Accessing: %s" % myfile + str(type(myfile)))
-            f=open(myfile, mode='rb')
-            file_contents = f.read()
-            att = exc.folders.FileAttachment(name=myfile, content=file_contents, attachment_id=exc.folders.AttachmentId("ABC1234"))
-            self.m.attach(att)
-            f.close()
-            os.chdir("..")
-        except IOError:
-            print("Error opening file %s. Exiting." % myfile)
-            import sys
-            sys.exit(0)
+        myfiles=[filenames[1], filenames[3]]
+        for myfile in myfiles:
+            try:
+                os.chdir("./calcs")
+                print("Accessing: %s" % myfile + str(type(myfile)))
+                f=open(myfile, mode='rb')
+                file_contents = f.read()
+                suffix = random.randint(0,99999)
+                att = exc.folders.FileAttachment(name=myfile, content=file_contents, attachment_id=exc.folders.AttachmentId("ABC"+str(suffix)))
+                self.m.attach(att)
+                f.close()
+                os.chdir("..")
+            except IOError:
+                print("Error opening file %s. Exiting." % myfile)
+                import sys
+                sys.exit(0)
 
 
 

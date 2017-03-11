@@ -27,23 +27,47 @@ def count_submissions_by_region(folder_name, account):
 #     t = timestring.split("-")
 #     return ews.EWSDateTime(int(t[0]), int(t[1]), int(t[2]), int(t[3]), int(t[4]))
 
+# Method to check a list of attachments and return the indexes of those eiligible for analysis and storage
+def check_attachments(attachments):
+    # assert (attachments, exchangelib.folders.Attachment)
+    rbound = len(attachments)
+    indices = []
+    for i in range(0, rbound):
+        if attachments[i].name[-4:] == "xlsm":
+            indices.append(i)
+        else:
+            print 'Attachment "{}" skipped, not in format for storage in database'.format(attachments[i].name)
+    return indices
+
 # Stores a submission received as an email message into the database. Returns the database index of that submission
 def store_submission(mess):
+    # Checking if this specific Message has been store in the database already
     if db.duplicatemessage(mess):
-        raise TypeError('Message (subject "{}") with this EWS message ID is already in database'.format(mess.subject))
+        #raise TypeError('Message (subject "{}") with this EWS message ID is already in database'.format(mess.subject))
+        pass
 
-    print "Inserting submission message with subject: %s" % mess.subject
-
+    # Check for eligible attachments and stores references to those in the attachment list
+    attachment_indices = check_attachments(mess.attachments)
+    print mess.attachments
+    print attachment_indices
+    attachments_no = len(attachment_indices)
 
     db.update_timestamp()
-    insert_index = db.insert_message(mess.attachments[0].name,
-                                     mess.sender,
-                                     mess.subject,
-                                     str(mess.datetime_sent),
-                                     str(mess.item_id),
-                                     str(mess.attachments[0].attachment_id),
-                                     mess.attachments[0].content)
-    return insert_index
+
+
+    for i in range(0, attachments_no):
+        print "Inserting submission message with subject: %s" % mess.subject
+        insert_index = db.insert_message(mess.attachments[attachment_indices[i]].name,
+                                         mess.sender,
+                                         mess.subject,
+                                         str(mess.datetime_sent),
+                                         str(mess.item_id),
+                                         str(mess.attachments[attachment_indices[i]].attachment_id),
+                                         mess.attachments[attachment_indices[i]].content)
+        if insert_index:
+            analyze_submission(insert_index)
+
+    return mess.item_id
 
 # Returns list of emails received since last update of the database
 def get_new_messages(folder_name, account):
@@ -86,15 +110,6 @@ def count_all(account):
 def analyze_submission(db_id):
     tempfile = db.get_file_by_id(db_id)
     parser = ExcelParser(tempfile)
-    # print 'Temporary file "%s" created' % tempfile
-    # print "Lead office: %s" % parser.get_lead_office()
-    # print "Project margin: %s" % parser.get_margin()
-    # print "Total fee: %s" % parser.get_project_fee()
-    # print "Total hours: %s" % parser.get_total_hours()
-    # print "By role: "
-    # print parser.get_hours_by_role()
-    # print "Blended hourly rate: %s" % parser.get_blended_hourly_rate()
-    # print "Pricing method: %s" % parser.assess_pricing_method()
 
     # build dict to pass to database
     d = {}
@@ -138,6 +153,7 @@ def main():
         from MyMessage import MyMessage
         m = MyMessage()
         mess = m.get_message()
+        messages = [mess]
     else:
         print("Entering live mode with connection to Exchange server")
         db.set_timestamp(datetime(2017,01,01))
@@ -150,17 +166,15 @@ def main():
         # print("No production lines present")
 
     # Three lines to first insert the file (with metadata), analyze the file, and close the connection
-    try:
-        insert_index = store_submission(mess).fetchone()[0]
-        analyze_submission(insert_index)
-        db.close()
-    except ValueError as error:
-        print repr(error)
-    except TypeError as error:
-        print repr(error)
+    for mess in messages:
+        try:
+            store_submission(mess)
+            db.close()
+        except ValueError as error:
+            print repr(error)
+        #except TypeError as error:
+        #    print repr(error)
 
-    # USE BELOW TO CHECK XLSM ANALYTICS
-    # analyze_submission(18)
 
 if __name__ == '__main__':
     main()
