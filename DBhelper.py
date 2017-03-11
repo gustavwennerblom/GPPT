@@ -31,10 +31,18 @@ class DBHelper:
         else:
             return True
 
+    def duplicatemessage(self, message):
+        sql = "SELECT Id FROM Test_SubmissionsC WHERE Message_Id = ?"
+        self.cur.execute(sql, (message.item_id, ))
+        if not self.cur.fetchone():
+            return False
+        else:
+            return True
+
             # Inserts an set of data as a new row in the database. Returns the index of that last insert.
     def insert_message(self, filename, submitter, region, date, message_id, attachment_id, attachment):
         if self.duplicate_file(filename):
-            raise ValueError("File is already in database")
+            raise TypeError("File is already in database")
 
         self.cur.execute(
             '''INSERT INTO Test_SubmissionsC

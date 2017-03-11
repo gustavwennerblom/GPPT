@@ -11,12 +11,6 @@ from datetime import datetime
 db = DBHelper()
 
 
-# Function to return a folder given a folder name
-# ELIMINATED - TOO ATOMIZED
-# def get_folder(name, account):
-#    return account.inbox.get_folder_by_name(name)
-
-
 # Counts number of submissions in a given folder
 def count_submissions_by_region(folder_name, account):
     f = account.inbox.get_folder_by_name(folder_name)
@@ -35,7 +29,11 @@ def count_submissions_by_region(folder_name, account):
 
 # Stores a submission received as an email message into the database. Returns the database index of that submission
 def store_submission(mess):
+    if db.duplicatemessage(mess):
+        raise TypeError('Message (subject "{}") with this EWS message ID is already in database'.format(mess.subject))
+
     print "Inserting submission message with subject: %s" % mess.subject
+
 
     db.update_timestamp()
     insert_index = db.insert_message(mess.attachments[0].name,
@@ -81,22 +79,6 @@ def count_all(account):
     regions = ["Americas", "APAC", "MEA", "CEE", "Western Europe"]
     for x in regions:
         print "%s: %i submissions" % (x, count_submissions_by_region(x, account))
-
-
-# Subrouting for testing. Inserts a spoof message into the database
-# Overridden by store_attacment(mess)
-def insert_testmessage():
-    if config.debug:
-        print("Entering test/debug mode: Inserting test message")
-        from MyMessage import MyMessage
-        m = MyMessage()
-        testmail = m.get_message()
-
-        db.insert_message(testmail.attachments[0].name, testmail.sender, testmail.subject, str(testmail.datetime_sent),
-                          str(testmail.attachments[0].attachment_id), testmail.attachments[0].content)
-        db.close()
-    else:
-        print "Subroutine not intended for production use. Set debug=True in config.py to use"
 
 
 # Reviews an xlsm file in the database and prints to stdout a set of data about it
@@ -173,6 +155,8 @@ def main():
         analyze_submission(insert_index)
         db.close()
     except ValueError as error:
+        print repr(error)
+    except TypeError as error:
         print repr(error)
 
     # USE BELOW TO CHECK XLSM ANALYTICS

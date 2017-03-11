@@ -36,7 +36,7 @@ class MyMessage:
 
         self.m = exc.Message(
             subject="[AM] Test",
-            item_id = "DEF567",
+            item_id = "DEF568",
             sender="Foo@Bar",
             body="Test message",
             datetime_sent = time
@@ -45,7 +45,7 @@ class MyMessage:
         import os
         cwd=os.getcwd()
         filenames=os.listdir(cwd+u"/calcs")
-        myfile=filenames[2]
+        myfile=filenames[1]
         try:
             os.chdir("./calcs")
             print("Accessing: %s" % myfile + str(type(myfile)))
