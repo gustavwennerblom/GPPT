@@ -2,6 +2,7 @@
 
 import exchangelib as exc
 import exchangelib.ewsdatetime as ews
+import logging
 from datetime import datetime
 import random
 
@@ -18,18 +19,6 @@ class MyMessage:
 
 
     def __init__(self):
-        # credentials = exc.Credentials("foo", "bar", is_service_account=False)
-        # config = exc.Configuration(
-        #     server="bar.com",
-        #     credentials=credentials
-        # )
-        #
-        # self.a = exc.Account(
-        #     primary_smtp_address="foo@bar.com",
-        #     config=config,
-        #     autodiscover=False,
-        #     access_type=exc.DELEGATE
-        # )
 
         # timestamps the message with current date and time
         time = self.convert_to_EWStime(datetime.now())
@@ -41,7 +30,7 @@ class MyMessage:
             body="Test message",
             datetime_sent = time
         )
-
+        logging.info('Test message created')
         import os
         cwd=os.getcwd()
         filenames=os.listdir(cwd+u"/calcs")
@@ -49,7 +38,7 @@ class MyMessage:
         for myfile in myfiles:
             try:
                 os.chdir("./calcs")
-                print("Accessing: %s" % myfile + str(type(myfile)))
+                logging.info("Accessing: %s" % myfile)
                 f=open(myfile, mode='rb')
                 file_contents = f.read()
                 suffix = random.randint(0,99999)
@@ -58,7 +47,7 @@ class MyMessage:
                 f.close()
                 os.chdir("..")
             except IOError:
-                print("Error opening file %s. Exiting." % myfile)
+                logging.error("Error opening file %s. Exiting." % myfile)
                 import sys
                 sys.exit(0)
 

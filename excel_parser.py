@@ -1,3 +1,4 @@
+import logging
 from openpyxl import Workbook, load_workbook
 from openpyxl.utils import coordinate_from_string, column_index_from_string
 

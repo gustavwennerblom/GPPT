@@ -1,23 +1,36 @@
+import config
 import sqlite3
+import logging
 from datetime import datetime
+
 
 class DBHelper:
 
     # Checks if a certain filename is already in the database
     # Valid since all files have a timestamp in the filename
 
-    def set_timestamp(self, t):
-        timestamp = datetime.strftime(t, "%Y-%m-%d-%H-%M-%S")
-        sql = "UPDATE Test_Last_Update SET Updated=? WHERE ID=1"
-        self.cur.execute(sql, (timestamp,))
-        self.conn.commit()
+    def set_timestamp(self, *args):
+        if len(args) > 2:
+            log.error('set_timestamp takes maximum one argument, %i given' % len(args))
+            raise TypeError("set_timestamp in DBhelper misused. Check log.")
+            return None
+        elif len(args) == 1:
+            timestamp = args[0]
+        else:
+            t = datetime.now()
+            timestamp = datetime.strftime(t, "%Y-%m-%d-%H-%M-%S")
 
-    def update_timestamp(self):
-        timestamp = datetime.strftime(datetime.now(), "%Y-%m-%d-%H-%M-%S")
-        print timestamp
         sql = "UPDATE Test_Last_Update SET Updated=? WHERE ID=1"
         self.cur.execute(sql, (timestamp,))
         self.conn.commit()
+        logging.info('Database timestamp for latest update set to %s' % timestamp)
+
+    # Tagged for removal - duplicate with set_timestamp
+    # def update_timestamp(self):
+    #     timestamp = datetime.strftime(datetime.now(), "%Y-%m-%d-%H-%M-%S")
+    #     sql = "UPDATE Test_Last_Update SET Updated=? WHERE ID=1"
+    #     self.cur.execute(sql, (timestamp,))
+    #     self.conn.commit()
 
     def get_timestamp(self):
         sql="SELECT (Updated) FROM Test_Last_UPDATE WHERE ID=1"
@@ -41,9 +54,11 @@ class DBHelper:
 
             # Inserts an set of data as a new row in the database. Returns the index of that last insert.
     def insert_message(self, filename, submitter, region, date, message_id, attachment_id, attachment):
-        # if self.duplicate_file(filename):
-        #    raise TypeError("File is already in database")
-        #    return None
+        if self.duplicate_file(filename) and config.enforce_unique_files:
+            logging.warning('Attempt to insert file {0} in database disallowed. Set enforce_unique_files in '
+                            'config-py to "False" to allow'.format(filename))
+            raise DuplicateFileError("File is already in database")
+            return None
 
         self.cur.execute(
             '''INSERT INTO Test_SubmissionsC
@@ -52,11 +67,10 @@ class DBHelper:
             (filename, submitter, region, date, message_id, attachment_id, sqlite3.Binary(attachment))
         )
         self.conn.commit()
-        print("Quote master data and file committed to database.")
+        logging.info("Message metadata and eligible attached files committed to database.")
 
         i = self.cur.execute("SELECT last_insert_rowid()").fetchone()[0]
-        print i
-
+        logging.info('Last message insert available on row %s in database' % str(i))
         return i
 
         # Perhaps a conn.close is needed here?
@@ -83,18 +97,18 @@ class DBHelper:
         )
 
         self.conn.commit()
-        print "Quote analysis inserted to database"
+        logging.info ('Quote analysis inserted and committed to database on database ID %s' % str(db_id))
 
         # Perhaps a conn.close is needed here?
 
     def close(self):
         self.conn.close()
-        print("Database connection closed")
+        logging.info("Database connection closed")
 
     # Retrieves a file from the database and returns the filename for it
     def get_file_by_id(self, i):
 
-        print "Retrieving file with database index %s" % i
+        logging.debug("Retrieving file with database index %s" % i)
         row = self.cur.execute("SELECT (Attachment_Binary) FROM Test_SubmissionsC WHERE (ID=?)", (i,)).fetchone()
         tempfile_name = "Written_From_DB.xlsm"
         tempfile_contents = row[0]
@@ -107,3 +121,9 @@ class DBHelper:
         self.dbname = dbname
         self.conn = sqlite3.Connection("submissions.db")
         self.cur = self.conn.cursor()
+
+class DuplicateMessageError(Exception):
+    pass
+
+class DuplicateFileError(Exception):
+    pass
