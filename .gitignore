@@ -6,4 +6,4 @@ CREDENTIALS.json
 *.xlsx
 calcs/
 .idea*
-
+*.log

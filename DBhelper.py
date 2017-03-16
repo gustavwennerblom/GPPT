@@ -108,7 +108,7 @@ class DBHelper:
     # Retrieves a file from the database and returns the filename for it
     def get_file_by_id(self, i):
 
-        logging.debug("Retrieving file with database index %s" % i)
+        logging.info("Retrieving file with database index %s" % i)
         row = self.cur.execute("SELECT (Attachment_Binary) FROM Test_SubmissionsC WHERE (ID=?)", (i,)).fetchone()
         tempfile_name = "Written_From_DB.xlsm"
         tempfile_contents = row[0]

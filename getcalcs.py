@@ -11,7 +11,7 @@ import exchangelib.ewsdatetime
 from datetime import datetime
 
 db = DBHelper()
-logging.basicConfig(level = config.loglevel)
+logging.basicConfig(filename="getcalcslog.log", level = config.loglevel)
 
 # Counts number of submissions in a given folder
 def count_submissions_by_region(folder_name, account):
@@ -46,9 +46,9 @@ def store_submission(mess):
 
     # Check for eligible attachments and stores references to those in the attachment list
     attachment_indices = check_attachments(mess.attachments)
-    logging.debug('Found attachments {}'.format(mess.attachments))
+    logging.info('Found attachments {}'.format(mess.attachments))
     attachments_no = len(attachment_indices)
-    logging.debug('Proceeding to store attachment number {0} in sequence of {1}.'.format(attachment_indices, attachments_no))
+    logging.info('Proceeding to store attachment number {0} in sequence of {1}.'.format(attachment_indices, attachments_no))
 
     db.set_timestamp()
 
@@ -56,9 +56,9 @@ def store_submission(mess):
     for i in range(0, attachments_no):
         logging.info("Inserting submission message with subject: %s" % mess.subject)
         insert_index = db.insert_message(mess.attachments[attachment_indices[i]].name,
-                                         mess.sender,
+                                         mess.sender.email_address,
                                          mess.subject,
-                                         str(mess.datetime_sent),
+                                         str(mess.datetime_received),
                                          str(mess.item_id),
                                          str(mess.attachments[attachment_indices[i]].attachment_id),
                                          mess.attachments[attachment_indices[i]].content)
@@ -139,28 +139,20 @@ def main():
     if config.debug:
         # USE BELOW TO INSERT A TEST MESSAGE IN THE DATABASE (CONFIGURE TEST MESSAGE IN MyMessage.py
         # insert_testmessage()
-        logging.debug('Triggering import of test Message')
+        logging.info('Triggering import of test Message')
         from MyMessage import MyMessage
         m = MyMessage()
         mess = m.get_message()
         messages = [mess]
     else:
         logging.info("Entering live mode with connection to Exchange server")
-        db.set_timestamp(datetime(2017,01,01))
-        logging.warning("Resetting last update to 2017-01-01 to get all old messages (test)")
-        # noinspection PyUnboundLocalVariable
-        messages = get_new_messages("Americas", account)
+        messages = get_new_messages("Americas", account)    # This should be changed to go through all regional mailboxes
 
-        # import code
-        # code.interact(local=locals())
-        # mess = get_one_message("Americas", account)
-        # print("No production lines present")
 
     # Three lines to first insert the file (with metadata), analyze the file, and close the connection
     for mess in messages:
         try:
             store_submission(mess)
-            db.close()
         # except ValueError as error:
         #    logging.error(repr(error))
         # except TypeError as error:
@@ -170,6 +162,10 @@ def main():
         except DuplicateMessageError as error:
             logging.error(repr(error))
 
+    logging.info("All messages stored and interpreted.")
+    print ("All done, closing connection to database")
+    logging.info("Closing database")
+    db.close()
 
 if __name__ == '__main__':
     main()
