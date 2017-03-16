@@ -5,3 +5,5 @@ CREDENTIALS.json
 *.xlsm
 *.xlsx
 calcs/
+.idea*
+

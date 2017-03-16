@@ -70,13 +70,10 @@ def store_submission(mess):
 # Returns list of emails received since last update of the database
 def get_new_messages(folder_name, account):
     target_folder = account.inbox.get_folder_by_name(folder_name)
-    latest_update = db.get_timestamp()
-    latest_update_ews = exchangelib.EWSDateTime.from_datetime(latest_update)
-    ordered_submissions = target_folder.all().order_by('-datetime_received')
+
     new_submissions=[]
-    for submission in ordered_submissions:
-        if submission.datetime_sent > latest_update_ews:
-            break
+    for submission in target_folder.all():
+
         new_submissions.append(submission)
 
     return new_submissions
@@ -85,7 +82,7 @@ def get_new_messages(folder_name, account):
 def get_one_message(folder_name, account):
     f = account.inbox.get_folder_by_name(folder_name)
     all_items = []
-    for item in f.all():
+    for item in f.all().order_by('-datetime_received')[:10]:
         all_items.append(item)
 
     return all_items[0]
