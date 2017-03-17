@@ -3,6 +3,25 @@ from openpyxl import Workbook, load_workbook
 from openpyxl.utils import coordinate_from_string, column_index_from_string
 
 class ExcelParser:
+    # Support method to get the various alternative core sheets
+    def get_sheet(self,sheetletter):
+        if sheetletter=="A":
+            v04name="Project pricing - consulting"
+            v06name="A) Project pricing consulting"
+            if v04name in wb.get_sheet_names():
+                return v04name
+            elif v06name in wb.get_sheet_names():
+                return v06name
+            else:
+                return wb.worksheets[1].title
+        elif sheetletter == "B":
+            pass
+        elif sheetletter == "C":
+            pass
+        else:
+            raise ValueError("Sheet names must be A, B, or C")
+            return None
+
     # Returns lead office of the proposal
     def get_lead_office(self):
         ws=self.wb["Project pricing - consulting"]
@@ -113,6 +132,3 @@ class ExcelParser:
         self.wb = Workbook()
         self.wb = load_workbook(tempfile, data_only=True)
         self.filename=tempfile
-
-
-
