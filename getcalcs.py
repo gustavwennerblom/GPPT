@@ -6,7 +6,7 @@ import logging
 
 from DBhelper import DBHelper, DuplicateFileError, DuplicateMessageError
 from exchangelib import Account, Credentials, DELEGATE
-from excel_parser import ExcelParser
+from excel_parser import ExcelParser, ExcelParsingError
 
 
 db = DBHelper()
@@ -182,7 +182,10 @@ def main():
 
     # Second loop iterates through all new inserted binaries and adds the analysis to the db
     for submission_id in all_new_rows:
-        analyze_submission(submission_id)
+        try:
+            analyze_submission(submission_id)
+        except ExcelParsingError as error:
+            logging.error(repr(error))
 
     # Finally, reporting back all sucessful and closing database connection
     logging.info("All messages interpreted.")

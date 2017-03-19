@@ -9,55 +9,57 @@ class ExcelParser:
             v04name="Project pricing - consulting"
             v06name="A) Project pricing consulting"
             if v04name in wb.get_sheet_names():
-                return v04name
+                return self.wb.get_sheet_by_name(v04name)
             elif v06name in wb.get_sheet_names():
-                return v06name
+                return self.wb.get_sheet_by_name(v06name)
             else:
-                return wb.worksheets[1].title
+                return wb.worksheets[1]
         elif sheetletter == "B":
-            pass
+            return self.wb.get_sheet_by_name("B) Activity-role planning")
         elif sheetletter == "C":
-            pass
+            return self.wb.get_sheet_by_name("C) Activity-role-week planning")
         else:
             raise ValueError("Sheet names must be A, B, or C")
             return None
 
     # Returns lead office of the proposal
     def get_lead_office(self):
-        ws=self.wb["Project pricing - consulting"]
+        ws=self.get_sheet("A")
         return ws['C4'].value
 
     # Returns region
     def get_region(self):
-        ws=self.wb["Project pricing - consulting"]
+        ws=self.get_sheet("A")
         return ws['N4'].value
 
     # Returns total project margin
     def get_margin(self):
-        ws=self.wb["Project pricing - consulting"]
+        ws=self.get_sheet("A")
         for cell in ws['B']:
             if cell.value=="SUBTOTAL":
-                margin_row=cell.row
-        return ws.cell(row=margin_row, column=13).value
+                return ws.cell(row=cell.row, column=13).value
+        raise ExcelParsingError("Cannot find project margin in project file")
+        return None
 
     # Returns total project fee
     def get_project_fee(self):
-        ws=self.wb["Project pricing - consulting"]
+        ws=self.get_sheet("A")
         for cell in ws['B']:
             if cell.value=="Project fee:":
-                project_fee_row=cell.row
-        return ws.cell(row=project_fee_row, column=3).value
+                return ws.cell(row=cell.row, column=3).value
+        raise ExcelParsingError("Cannot find project fee in project file")
+        return None
 
     def get_blended_hourly_rate(self):
-        ws = self.wb["Project pricing - consulting"]
+        ws = self.get_sheet("A")
         for cell in ws['B']:
             if cell.value == "Blended hourly rate:":
-                label_cell=cell
-        return label_cell.offset(column=1).value
+                return cell.offset(column=1).value
+        raise ExcelParsingError("Cannot find blended hourly rate in project file")
 
     # Returns a dict of hours estimated by role
     def get_hours_by_role(self):
-        ws=self.wb["Project pricing - consulting"]
+        ws=self.get_sheet("A")
         for cell in ws['B']:
             if cell.value=="Role":
                 first_row=cell.row + 1
@@ -75,7 +77,7 @@ class ExcelParser:
 
     #Returns total number of hours estiamted
     def get_total_hours(self):
-        ws=self.wb["Project pricing - consulting"]
+        ws=self.get_sheet("A")
         for cell in ws['13']:
             if cell.value=="Total hours used":
                 total_hours_col=column_index_from_string(cell.column)
@@ -88,8 +90,8 @@ class ExcelParser:
     # Attempts to figure out which pricing method was used by the submitter
     def assess_pricing_method(self):
 
-        ws_B=self.wb["B) Activity-role planning"]
-        ws_C=self.wb["C) Activity-role-week planning"]
+        ws_B = self.get_sheet("B")
+        ws_C = self.get_sheet("C")
 
         #Check total hours in main sheet
         hours_main = self.get_total_hours()
@@ -132,3 +134,6 @@ class ExcelParser:
         self.wb = Workbook()
         self.wb = load_workbook(tempfile, data_only=True)
         self.filename=tempfile
+
+class ExcelParsingError(Exception):
+    pass
