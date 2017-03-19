@@ -7,11 +7,11 @@ import logging
 from DBhelper import DBHelper, DuplicateFileError, DuplicateMessageError
 from exchangelib import Account, Credentials, DELEGATE
 from excel_parser import ExcelParser
-import exchangelib.ewsdatetime
-from datetime import datetime
+
 
 db = DBHelper()
-logging.basicConfig(filename="getcalcslog.log", level = config.loglevel)
+logging.basicConfig(filename="getcalcslog.log", level=config.loglevel)
+
 
 # Counts number of submissions in a given folder
 def count_submissions_by_region(folder_name, account):
@@ -21,6 +21,7 @@ def count_submissions_by_region(folder_name, account):
     #     counter += 1
     # return counter
     return f.total_count
+
 
 # Method to check a list of attachments and return the indexes of those eiligible for analysis and storage
 def check_attachments(attachments):
@@ -35,26 +36,29 @@ def check_attachments(attachments):
                 'Attachment "{}" skipped, not in format for storage in database'.format(attachments[i].name))
     return indices
 
+
 # Stores a submission received as an email message into the database. Returns the database index of that submission
 def store_submission(mess):
-    # Checking if this specific Message has been store in the database already
+    # Checking if this specific Message has been store in the database already. Return 'None' if duplicate.
     if db.duplicatemessage(mess) and config.enforce_unique_messages:
-        logging.warning('Attempt to insert message with EWS ID {} disallowed by configuration. Set enforce_unique_files '
-                        'in config.py to "False" to allow.'.format(mess.item_id))
+        logging.warning('Attempt to insert message with EWS ID {} disallowed by configuration. '
+                        'Set enforce_unique_files in config.py to "False" to allow.'.format(mess.item_id))
         raise TypeError('Message (subject "{}") with this EWS message ID is already in database'.format(mess.subject))
-
+        return None
 
     # Check for eligible attachments and stores references to those in the attachment list
     attachment_indices = check_attachments(mess.attachments)
     logging.info('Found attachments {}'.format(mess.attachments))
     attachments_no = len(attachment_indices)
-    logging.info('Proceeding to store attachment number {0} in sequence of {1}.'.format(attachment_indices, attachments_no))
 
     db.set_timestamp()
 
-
+    # Resetting return variable
+    new_insert_indices = []
     for i in range(0, attachments_no):
+
         logging.info("Inserting submission message with subject: %s" % mess.subject)
+        # db.insert_message returns the row id of the latest insert
         insert_index = db.insert_message(mess.attachments[attachment_indices[i]].name,
                                          mess.sender.email_address,
                                          mess.subject,
@@ -62,21 +66,28 @@ def store_submission(mess):
                                          str(mess.item_id),
                                          str(mess.attachments[attachment_indices[i]].attachment_id),
                                          mess.attachments[attachment_indices[i]].content)
-        if insert_index:
-            analyze_submission(insert_index)
+        # if insert_index:
+        #    logging.info(
+        #        'Proceeding to store attachment number {0} in sequence of {1}.'.format(i + 1, attachments_no))
+        #    analyze_submission(insert_index)
 
-    return mess.item_id
+        # The database row of each insert (can be multiple if multiple eligible attachments is saved in a list
+        new_insert_indices.append(insert_index)
+
+    return new_insert_indices
+
 
 # Returns list of emails received since last update of the database
 def get_new_messages(folder_name, account):
     target_folder = account.inbox.get_folder_by_name(folder_name)
 
-    new_submissions=[]
+    new_submissions = []
     for submission in target_folder.all():
 
         new_submissions.append(submission)
 
     return new_submissions
+
 
 # Test method to try attachment download
 def get_one_message(folder_name, account):
@@ -86,6 +97,7 @@ def get_one_message(folder_name, account):
         all_items.append(item)
 
     return all_items[0]
+
 
 # Basic run function to print a count of submissions by region
 def count_all(account):
@@ -146,13 +158,18 @@ def main():
         messages = [mess]
     else:
         logging.info("Entering live mode with connection to Exchange server")
-        messages = get_new_messages("Americas", account)    # This should be changed to go through all regional mailboxes
+        # noinspection PyUnboundLocalVariable
+        messages = get_new_messages("Americas", account)  # This should be changed to go through all regional mailboxes
 
-
-    # Three lines to first insert the file (with metadata), analyze the file, and close the connection
+    # First loop saves all new messages and attachment binaries into the database
+    all_new_rows = []
     for mess in messages:
         try:
-            store_submission(mess)
+            new_rows = store_submission(mess)
+            # Unless store_submission has returned None, save row id in list to analyze
+            if isinstance(new_rows, list):
+                for row in new_rows:
+                    all_new_rows.append(row)
         # except ValueError as error:
         #    logging.error(repr(error))
         # except TypeError as error:
@@ -161,8 +178,14 @@ def main():
             logging.error(repr(error))
         except DuplicateMessageError as error:
             logging.error(repr(error))
+    logging.info("All new messages stored in database - moving to interpreting them")
 
-    logging.info("All messages stored and interpreted.")
+    # Second loop iterates through all new inserted binaries and adds the analysis to the db
+    for submission_id in all_new_rows:
+        analyze_submission(submission_id)
+
+    # Finally, reporting back all sucessful and closing database connection
+    logging.info("All messages interpreted.")
     print ("All done, closing connection to database")
     logging.info("Closing database")
     db.close()

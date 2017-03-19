@@ -11,7 +11,7 @@ class DBHelper:
 
     def set_timestamp(self, *args):
         if len(args) > 2:
-            log.error('set_timestamp takes maximum one argument, %i given' % len(args))
+            logging.error('set_timestamp takes maximum one argument, %i given' % len(args))
             raise TypeError("set_timestamp in DBhelper misused. Check log.")
             return None
         elif len(args) == 1:
