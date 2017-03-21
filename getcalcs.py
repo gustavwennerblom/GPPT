@@ -10,7 +10,8 @@ from excel_parser import ExcelParser, ExcelParsingError
 
 
 db = DBHelper()
-logging.basicConfig(filename="getcalcslog.log", level=config.loglevel)
+FORMAT = '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+logging.basicConfig(filename="getcalcslog.log", format=FORMAT, level=config.loglevel)
 
 
 # Counts number of submissions in a given folder
