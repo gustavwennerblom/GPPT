@@ -19,8 +19,7 @@ class ExcelParser:
         elif sheetletter == "C":
             return self.wb.get_sheet_by_name("C) Activity-role-week planning")
         else:
-            raise ValueError("Sheet names must be A, B, or C")
-            return None
+            raise ExcelParsingError("Sheet names must be A, B, or C")
 
     # Returns lead office of the proposal
     def get_lead_office(self):
@@ -64,15 +63,18 @@ class ExcelParser:
             if cell.value=="Role":
                 first_row=cell.row + 1
             elif cell.value=="SUBTOTAL":
-                last_row=cell.row -1
+                last_row=cell.row -2
 
-        roles_hours={"Manager": 0, "SPM": 0, "PM": 0, "Cons":0, "Assoc":0}
+        roles_hours={"Manager": 0, "SPM": 0,    "PM": 0, "Cons":0, "Assoc":0}
         for row in ws.iter_rows(min_row=first_row, max_row=last_row, min_col=2, max_col=2):
             for cell in row:
                 for key in roles_hours:
                     if key in cell.value:
-                        roles_hours[key]+=int(cell.offset(column=8).value)
-
+                        try:
+                            roles_hours[key]+=int(cell.offset(column=8).value)
+                        except ValueError as error:
+                            logging.error(repr(error))
+                            roles_hours[key]+=0     # Occurs in case of #REF error in excel sheet
         return roles_hours
 
     #Returns total number of hours estiamted
@@ -120,13 +122,16 @@ class ExcelParser:
         # TO BE CONSTRUCTED
 
         #Final check for which method has been used and return string of that result
-        if int(hours_B) in range(int(hours_main*0.95), int(hours_main*1.05)):
-            return "Method 3 (Activity-Role)"
-        elif int(hours_C) in range (int(hours_main*0.95), int(hours_main*1.05)):
-            return "Method 4 (Activity-Role-Week)"
-        else:
-            return "Method 1 or 2"
-
+        try:
+            if int(hours_B) in range(int(hours_main*0.95), int(hours_main*1.05)):
+                return "Method 3 (Activity-Role)"
+            elif int(hours_C) in range (int(hours_main*0.95), int(hours_main*1.05)):
+                return "Method 4 (Activity-Role-Week)"
+            else:
+                return "Method 1 or 2"
+        except TypeError as error:
+            logging.error(repr(error))
+            return "Method unknown (auto-analysis failed)"
 
 
     # Initializing with reference to a filename
