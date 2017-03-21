@@ -75,6 +75,11 @@ class DBHelper:
 
         # Perhaps a conn.close is needed here?
 
+    def countlines(self):
+        sql="SELECT Count(*) FROM Test_SubmissionsC;"
+        result = self.cur.execute(sql).fetchone()[0]
+        return result
+
     def insert_analysis(self, db_id, **kwargs):
         self.cur.execute(
             '''UPDATE Test_SubmissionsC SET

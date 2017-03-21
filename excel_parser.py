@@ -8,12 +8,12 @@ class ExcelParser:
         if sheetletter=="A":
             v04name="Project pricing - consulting"
             v06name="A) Project pricing consulting"
-            if v04name in wb.get_sheet_names():
+            if v04name in self.wb.get_sheet_names():
                 return self.wb.get_sheet_by_name(v04name)
-            elif v06name in wb.get_sheet_names():
+            elif v06name in self.wb.get_sheet_names():
                 return self.wb.get_sheet_by_name(v06name)
             else:
-                return wb.worksheets[1]
+                return self.wb.worksheets[1]
         elif sheetletter == "B":
             return self.wb.get_sheet_by_name("B) Activity-role planning")
         elif sheetletter == "C":

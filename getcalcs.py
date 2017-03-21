@@ -29,11 +29,17 @@ def check_attachments(attachments):
     rbound = len(attachments)
     indices = []
     for i in range(0, rbound):
-        if attachments[i].name[-4:] == "xlsm":
-            indices.append(i)
-        else:
-            logging.warning(
-                'Attachment "{}" skipped, not in format for storage in database'.format(attachments[i].name))
+        try:
+            if attachments[i].name[-4:] == "xlsm":
+                indices.append(i)
+                logging.info('Attachment {} queued for storage in database'.format(attachments[i].name).encode('utf-8'))
+            else:
+                logging.warning(
+                    'Attachment "{}" skipped, not in format for storage in '
+                    'database'.format(attachments[i].name).encode('utf-8')
+                )
+        except UnicodeEncodeError as error:
+            logging.error("Error caught in method 'check_attachments': " + repr(error))
     return indices
 
 
