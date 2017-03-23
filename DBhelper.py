@@ -13,7 +13,6 @@ class DBHelper:
         if len(args) > 2:
             logging.error('set_timestamp takes maximum one argument, %i given' % len(args))
             raise TypeError("set_timestamp in DBhelper misused. Check log.")
-            return None
         elif len(args) == 1:
             timestamp = args[0]
         else:
@@ -33,7 +32,7 @@ class DBHelper:
     #     self.conn.commit()
 
     def get_timestamp(self):
-        sql="SELECT (Updated) FROM Test_Last_UPDATE WHERE ID=1"
+        sql = "SELECT (Updated) FROM Test_Last_UPDATE WHERE ID=1"
         return self.cur.execute(sql).fetchone()
 
     def duplicate_file(self, filename):
@@ -55,10 +54,9 @@ class DBHelper:
             # Inserts an set of data as a new row in the database. Returns the index of that last insert.
     def insert_message(self, filename, submitter, region, date, message_id, attachment_id, attachment):
         if self.duplicate_file(filename) and config.enforce_unique_files:
-            logging.warning('Attempt to insert file {0} in database disallowed. Set enforce_unique_files in '
-                            'config-py to "False" to allow'.format(filename))
+            logging.warning('Attempt to insert file %s in database disallowed. Set enforce_unique_files in '
+                            'config-py to "False" to allow' % filename)
             raise DuplicateFileError("File is already in database")
-            return None
 
         self.cur.execute(
             '''INSERT INTO Test_SubmissionsC
@@ -76,7 +74,7 @@ class DBHelper:
         # Perhaps a conn.close is needed here?
 
     def countlines(self):
-        sql="SELECT Count(*) FROM Test_SubmissionsC;"
+        sql = "SELECT Count(*) FROM Test_SubmissionsC;"
         result = self.cur.execute(sql).fetchone()[0]
         return result
 
@@ -102,7 +100,7 @@ class DBHelper:
         )
 
         self.conn.commit()
-        logging.info ('Quote analysis inserted and committed to database on database ID %s' % str(db_id))
+        logging.info('Quote analysis inserted and committed to database on database ID %s' % str(db_id))
 
         # Perhaps a conn.close is needed here?
 
@@ -127,8 +125,10 @@ class DBHelper:
         self.conn = sqlite3.Connection("submissions.db")
         self.cur = self.conn.cursor()
 
-class DuplicateMessageError(Exception):
-    pass
 
 class DuplicateFileError(Exception):
+    pass
+
+
+class DuplicateMessageError(Exception):
     pass

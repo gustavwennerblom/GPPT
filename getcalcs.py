@@ -33,11 +33,10 @@ def check_attachments(attachments):
         try:
             if attachments[i].name[-4:] == "xlsm":
                 indices.append(i)
-                logging.info('Attachment {} queued for storage in database'.format(attachments[i].name).encode('utf-8'))
+                logging.info('Attachment %s queued for storage in database' % attachments[i].name)
             else:
                 logging.warning(
-                    'Attachment "{}" skipped, not in format for storage in '
-                    'database'.format(attachments[i].name).encode('utf-8')
+                    'Attachment "%s" skipped, not in format for storage in database' % attachments[i].name
                 )
         except UnicodeEncodeError as error:
             logging.error("Error caught in method 'check_attachments': " + repr(error))
@@ -49,15 +48,19 @@ def store_submission(mess):
     # Checking if this specific Message has been store in the database already. Return 'None' if duplicate.
     # noinspection PyUnreachableCode
     if db.duplicatemessage(mess) and config.enforce_unique_messages:
-        logging.warning('Attempt to insert message with EWS ID {} disallowed by configuration. '
-                        'Set enforce_unique_files in config.py to "False" to allow.'.format(mess.item_id))
-        raise TypeError('Message (subject "{}") with this EWS message ID is already in database'.format(mess.subject))
-        return None
+        logging.warning('Attempt to insert message with EWS ID %s disallowed by configuration. '
+                        'Set enforce_unique_files in config.py to "False" to allow.' % mess.item_id)
+        try:
+            raise DuplicateMessageError('Message (subject "%s") with this EWS message ID is already '
+                                        'in database' % mess.subject)
+        except UnicodeEncodeError as error:
+            logging.error("Message with this EWS message ID (and cumbersome Unicode title) "
+                          "already in database " + repr(error))
 
     # Check for eligible attachments and stores references to those in the attachment list
     attachment_indices = check_attachments(mess.attachments)
-    logging.info('Found attachments {}'.format(mess.attachments))
     attachments_no = len(attachment_indices)
+    logging.debug('Found %i attachments' % attachments_no)
 
     db.set_timestamp()
 
@@ -104,7 +107,7 @@ def get_all_new_messages(account):
     allfolders.append(account.inbox)
 
     for folder in allfolders:
-        logging.info("Looking in folder{}".format(str(folder)))
+        logging.info("Looking in folder %s" % str(folder))
         for submission in folder.all():
             try:
                 db_indices = store_submission(submission)
@@ -223,3 +226,6 @@ def main():
 
 if __name__ == '__main__':
     main()
+
+
+
