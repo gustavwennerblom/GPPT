@@ -47,6 +47,7 @@ def check_attachments(attachments):
 # Stores a submission received as an email message into the database. Returns the database index of that submission
 def store_submission(mess):
     # Checking if this specific Message has been store in the database already. Return 'None' if duplicate.
+    # noinspection PyUnreachableCode
     if db.duplicatemessage(mess) and config.enforce_unique_messages:
         logging.warning('Attempt to insert message with EWS ID {} disallowed by configuration. '
                         'Set enforce_unique_files in config.py to "False" to allow.'.format(mess.item_id))
@@ -94,6 +95,28 @@ def get_new_messages(folder_name, account):
         new_submissions.append(submission)
 
     return new_submissions
+
+
+def get_all_new_messages(account):
+    logging.info("Initializing message downloads")
+    all_new_rows = []
+    allfolders = account.inbox.get_folders()
+    allfolders.append(account.inbox)
+
+    for folder in allfolders:
+        logging.info("Looking in folder{}".format(str(folder)))
+        for submission in folder.all():
+            try:
+                db_indices = store_submission(submission)
+                # Unless store_submission has returned None, save row id in list to analyze
+                if isinstance(db_indices, list):
+                    all_new_rows += db_indices
+            except DuplicateFileError as error:
+                logging.error(repr(error))
+            except DuplicateMessageError as error:
+                logging.error(repr(error))
+
+    return all_new_rows
 
 
 # Test method to try attachment download
@@ -166,7 +189,7 @@ def main():
     else:
         logging.info("Entering live mode with connection to Exchange server")
         # noinspection PyUnboundLocalVariable
-        # messages = get_new_messages("Americas", account)  # This should be changed to go through all regional mailboxes
+        # messages = get_new_messages("Americas", account)  # Early test of mailbox access
 
     # First loop saves all new messages and attachment binaries into the database
     # In branch allfolders, this is being refactored into the get_all_new_messages method
@@ -184,7 +207,7 @@ def main():
     #         logging.error(repr(error))
     # logging.info("All new messages stored in database - moving to interpreting them")
 
-    all_
+    all_new_rows = get_all_new_messages(account)
     # Second loop iterates through all new inserted binaries and adds the analysis to the db
     for submission_id in all_new_rows:
         try:

@@ -74,7 +74,10 @@ class ExcelParser:
                             roles_hours[key]+=int(cell.offset(column=8).value)
                         except ValueError as error:
                             logging.error(repr(error))
-                            roles_hours[key]+=0     # Occurs in case of #REF error in excel sheet
+                            roles_hours[key]+=-1     # Occurs in case of #REF error in excel sheet
+                        except TypeError as error:
+                            logging.error(repr(error))
+                            roles_hours[key]+=-1    # Saves from crash when returning None
         return roles_hours
 
     #Returns total number of hours estiamted
