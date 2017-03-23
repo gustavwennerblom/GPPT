@@ -166,27 +166,25 @@ def main():
     else:
         logging.info("Entering live mode with connection to Exchange server")
         # noinspection PyUnboundLocalVariable
-        messages = get_new_messages("Americas", account)  # This should be changed to go through all regional mailboxes
+        # messages = get_new_messages("Americas", account)  # This should be changed to go through all regional mailboxes
 
     # First loop saves all new messages and attachment binaries into the database
-    all_new_rows = []
-    for mess in messages:
-        try:
-            new_rows = store_submission(mess)
-            # Unless store_submission has returned None, save row id in list to analyze
-            if isinstance(new_rows, list):
-                for row in new_rows:
-                    all_new_rows.append(row)
-        # except ValueError as error:
-        #    logging.error(repr(error))
-        # except TypeError as error:
-        #    logging.error(repr(error))
-        except DuplicateFileError as error:
-            logging.error(repr(error))
-        except DuplicateMessageError as error:
-            logging.error(repr(error))
-    logging.info("All new messages stored in database - moving to interpreting them")
+    # In branch allfolders, this is being refactored into the get_all_new_messages method
+    # all_new_rows = []
+    # for mess in messages:
+    #     try:
+    #         new_rows = store_submission(mess)
+    #         # Unless store_submission has returned None, save row id in list to analyze
+    #         if isinstance(new_rows, list):
+    #             for row in new_rows:
+    #                 all_new_rows.append(row)
+    #     except DuplicateFileError as error:
+    #         logging.error(repr(error))
+    #     except DuplicateMessageError as error:
+    #         logging.error(repr(error))
+    # logging.info("All new messages stored in database - moving to interpreting them")
 
+    all_
     # Second loop iterates through all new inserted binaries and adds the analysis to the db
     for submission_id in all_new_rows:
         try:
