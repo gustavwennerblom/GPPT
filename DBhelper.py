@@ -74,6 +74,7 @@ class DBHelper:
         # Perhaps a conn.close is needed here?
 
     def countlines(self):
+        # type: () -> int
         sql = "SELECT Count(*) FROM Test_SubmissionsC;"
         result = self.cur.execute(sql).fetchone()[0]
         return result
@@ -119,6 +120,15 @@ class DBHelper:
         f.write(tempfile_contents)
         f.close()
         return tempfile_name
+
+    # Returns list with all values from a specified column
+    def get_column_values(self, col):
+        result = []
+        sql = "SELECT ? FROM Test_SubmissionsC;"
+        out = self.cur.execute(sql, (col,)).fetchall()
+        for item in out;
+            result.append(item)
+        return result
 
     def __init__(self, dbname="submissions.db"):
         self.dbname = dbname

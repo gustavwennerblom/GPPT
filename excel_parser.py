@@ -2,12 +2,14 @@ import logging
 from openpyxl import Workbook, load_workbook
 from openpyxl.utils import coordinate_from_string, column_index_from_string
 
+
+# noinspection PyPep8Naming
 class ExcelParser:
     # Support method to get the various alternative core sheets
-    def get_sheet(self,sheetletter):
-        if sheetletter=="A":
-            v04name="Project pricing - consulting"
-            v06name="A) Project pricing consulting"
+    def get_sheet(self, sheetletter):
+        if sheetletter == "A":
+            v04name = "Project pricing - consulting"
+            v06name = "A) Project pricing consulting"
             if v04name in self.wb.get_sheet_names():
                 return self.wb.get_sheet_by_name(v04name)
             elif v06name in self.wb.get_sheet_names():
@@ -15,7 +17,14 @@ class ExcelParser:
             else:
                 return self.wb.worksheets[1]
         elif sheetletter == "B":
-            return self.wb.get_sheet_by_name("B) Activity-role planning")
+            v02name = "Project planning"
+            v04name = "B) Activity-role planning"
+            if v02name in self.wb.get_sheet_names():
+                return self.wb.get_sheet_by_name(v02name)
+            elif v04name in self.wb.get_sheet_names():
+                return self.wb.get_sheet_by_name(v04name)
+            else:
+                return self.wb.worksheets[2]
         elif sheetletter == "C":
             return self.wb.get_sheet_by_name("C) Activity-role-week planning")
         else:
@@ -23,31 +32,29 @@ class ExcelParser:
 
     # Returns lead office of the proposal
     def get_lead_office(self):
-        ws=self.get_sheet("A")
+        ws = self.get_sheet("A")
         return ws['C4'].value
 
     # Returns region
     def get_region(self):
-        ws=self.get_sheet("A")
+        ws = self.get_sheet("A")
         return ws['N4'].value
 
     # Returns total project margin
     def get_margin(self):
-        ws=self.get_sheet("A")
+        ws = self.get_sheet("A")
         for cell in ws['B']:
-            if cell.value=="SUBTOTAL":
+            if cell.value == "SUBTOTAL":
                 return ws.cell(row=cell.row, column=13).value
         raise ExcelParsingError("Cannot find project margin in project file")
-        return None
 
     # Returns total project fee
     def get_project_fee(self):
-        ws=self.get_sheet("A")
+        ws = self.get_sheet("A")
         for cell in ws['B']:
-            if cell.value=="Project fee:":
+            if cell.value == "Project fee:":
                 return ws.cell(row=cell.row, column=3).value
         raise ExcelParsingError("Cannot find project fee in project file")
-        return None
 
     def get_blended_hourly_rate(self):
         ws = self.get_sheet("A")
@@ -58,60 +65,64 @@ class ExcelParser:
 
     # Returns a dict of hours estimated by role
     def get_hours_by_role(self):
-        ws=self.get_sheet("A")
+        ws = self.get_sheet("A")
         for cell in ws['B']:
-            if cell.value=="Role":
-                first_row=cell.row + 1
-            elif cell.value=="SUBTOTAL":
-                last_row=cell.row -2
+            if cell.value == "Role":
+                first_row = cell.row + 1
+            elif cell.value == "SUBTOTAL":
+                last_row = cell.row - 2
 
-        roles_hours={"Manager": 0, "SPM": 0,    "PM": 0, "Cons":0, "Assoc":0}
+        roles_hours = {"Manager": 0, "SPM": 0,    "PM": 0, "Cons": 0, "Assoc": 0}
         for row in ws.iter_rows(min_row=first_row, max_row=last_row, min_col=2, max_col=2):
             for cell in row:
                 for key in roles_hours:
-                    if key in cell.value:
-                        try:
-                            roles_hours[key]+=int(cell.offset(column=8).value)
-                        except ValueError as error:
-                            logging.error(repr(error))
-                            roles_hours[key]+=-1     # Occurs in case of #REF error in excel sheet
-                        except TypeError as error:
-                            logging.error(repr(error))
-                            roles_hours[key]+=-1    # Saves from crash when returning None
+                    try:
+                        if key in cell.value:
+                            roles_hours[key] += int(cell.offset(column=8).value)
+                    except ValueError as error:
+                        logging.error(repr(error))
+                        roles_hours[key] += -1     # Occurs in case of #REF error in excel sheet
+                    except TypeError as error:
+                        logging.error(repr(error))
+                        roles_hours[key] += -1    # Saves from crash when returning None
         return roles_hours
 
-    #Returns total number of hours estiamted
+    # Returns total number of hours estiamted
     def get_total_hours(self):
-        ws=self.get_sheet("A")
+        ws = self.get_sheet("A")
         for cell in ws['13']:
-            if cell.value=="Total hours used":
-                total_hours_col=column_index_from_string(cell.column)
+            if cell.value == "Total hours used":
+                total_hours_col = column_index_from_string(cell.column)
         for cell in ws['B']:
-            if cell.value=="SUBTOTAL":
-                total_hours_row=cell.row
+            if cell.value == "SUBTOTAL":
+                total_hours_row = cell.row
 
         return ws.cell(row=total_hours_row, column=total_hours_col).value
 
     # Attempts to figure out which pricing method was used by the submitter
-    def assess_pricing_method(self):
+    def assess_pricing_method(self, db_id):
 
-        ws_B = self.get_sheet("B")
-        ws_C = self.get_sheet("C")
+        try:
+            ws_B = self.get_sheet("B")
+            ws_C = self.get_sheet("C")
+        except KeyError as error:
+            logging.error("Erron or row %i " % db_id + repr(error))
+            return "Auto-analysis failed, possibly too old tool version?"
 
-        #Check total hours in main sheet
+        # Check total hours in main sheet
         hours_main = self.get_total_hours()
 
-        #Check total hours in sheet B
+        # Check total hours in sheet B
         for t in tuple(ws_B.rows):
             for cell in t:
-                if cell.value=="TOTAL BY ACTIVITY":
-                    target_B_col=column_index_from_string(cell.column)
-                if cell.value=="TOTAL HOURS BY ROLE":
-                    target_B_row=cell.row
+                if cell.value == "TOTAL BY ACTIVITY":
+                    target_B_col = column_index_from_string(cell.column)
+                if cell.value == "TOTAL HOURS BY ROLE":
+                    target_B_row = cell.row
 
-        hours_B=ws_B.cell(row=target_B_row, column=target_B_col).value
+        hours_B = ws_B.cell(row=target_B_row, column=target_B_col).value
 
-        #Check total hours in sheet C
+        # Check total hours in sheet C
         for t in tuple(ws_C.rows):
             for cell in t:
                 if cell.value == "TOTAL BY ACTIVITY":
@@ -121,14 +132,14 @@ class ExcelParser:
 
         hours_C = ws_C.cell(row=target_C_row, column=target_C_col).value
 
-        #Check if week-share method has been used
+        # Check if week-share method has been used
         # TO BE CONSTRUCTED
 
-        #Final check for which method has been used and return string of that result
+        # Final check for which method has been used and return string of that result
         try:
             if int(hours_B) in range(int(hours_main*0.95), int(hours_main*1.05)):
                 return "Method 3 (Activity-Role)"
-            elif int(hours_C) in range (int(hours_main*0.95), int(hours_main*1.05)):
+            elif int(hours_C) in range(int(hours_main*0.95), int(hours_main*1.05)):
                 return "Method 4 (Activity-Role-Week)"
             else:
                 return "Method 1 or 2"
@@ -136,12 +147,12 @@ class ExcelParser:
             logging.error(repr(error))
             return "Method unknown (auto-analysis failed)"
 
-
     # Initializing with reference to a filename
-    def __init__(self,tempfile):
+    def __init__(self, tempfile):
         self.wb = Workbook()
         self.wb = load_workbook(tempfile, data_only=True)
-        self.filename=tempfile
+        self.filename = tempfile
+
 
 class ExcelParsingError(Exception):
     pass

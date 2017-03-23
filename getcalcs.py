@@ -146,14 +146,14 @@ def analyze_submission(db_id):
     parser = ExcelParser(tempfile)
 
     # build dict to pass to database
-    d = {}
-    d["lead_office"] = parser.get_lead_office()
-    d["project_margin"] = parser.get_margin()
-    d["total_fee"] = parser.get_project_fee()
-    d["total_hours"] = parser.get_total_hours()
-    d["hours_by_role"] = parser.get_hours_by_role()  # Note: This returns a dict
-    d["blended_hourly_rate"] = parser.get_blended_hourly_rate()
-    d["pricing_method"] = parser.assess_pricing_method()
+    # d = {}
+    # d["lead_office"] = parser.get_lead_office()
+    # d["project_margin"] = parser.get_margin()
+    # d["total_fee"] = parser.get_project_fee()
+    # d["total_hours"] = parser.get_total_hours()
+    # d["hours_by_role"] = parser.get_hours_by_role()  # Note: This returns a dict
+    # d["blended_hourly_rate"] = parser.get_blended_hourly_rate()
+    # d["pricing_method"] = parser.assess_pricing_method(db_id)
 
     db.insert_analysis(db_id, lead_office=parser.get_lead_office(),
                        project_margin=parser.get_margin(),
@@ -161,7 +161,15 @@ def analyze_submission(db_id):
                        total_hours=parser.get_total_hours(),
                        hours_by_role=parser.get_hours_by_role(),
                        blended_hourly_rate=parser.get_blended_hourly_rate(),
-                       pricing_method=parser.assess_pricing_method())
+                       pricing_method=parser.assess_pricing_method(db_id))
+
+
+# Fallback method to rerun analysis on all submissions stored in database, in case of failure half way
+def reanalyze_all():
+    db_lines = db.countlines()  # type: int
+    for index in range (150, db_lines + 1):
+        analyze_submission(index)
+
 
 
 def main():
@@ -225,7 +233,8 @@ def main():
     db.close()
 
 if __name__ == '__main__':
-    main()
+    # main()
+    reanalyze_all()
 
 
 
