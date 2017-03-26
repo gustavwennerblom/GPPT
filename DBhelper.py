@@ -126,7 +126,7 @@ class DBHelper:
         result = []
         sql = "SELECT ? FROM Test_SubmissionsC;"
         out = self.cur.execute(sql, (col,)).fetchall()
-        for item in out;
+        for item in out:
             result.append(item)
         return result
 
