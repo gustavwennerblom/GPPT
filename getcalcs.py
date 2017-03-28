@@ -203,15 +203,22 @@ def main():
     db.close()
 
 if __name__ == '__main__':
-    user_select = input("Menu:\n [1] Update all submissions \n [2] Rerun quote analysis on database \n >>")
+    user_select = input("Menu:\n "
+                        "[1] Update all submissions \n "
+                        "[2] Rerun quote analysis on database \n "
+                        "[3] Export to csv file \n "
+                        ">>")
     if user_select ==  1:
         main()
     elif user_select == 2:
         logging.info("Initializing database re-analysis")
         reanalyze_all()
+    elif user_select == 3:
+        logging.info("Initializing export")
+        db.export_db(format="csv")
     else:
         print(user_select)
-        print 'Valid selections only "1" or "2". Please restart and try again'
+        print 'Valid selections only "1" or "2" or "3". Please restart and try again'
 
 
 

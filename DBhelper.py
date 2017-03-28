@@ -1,7 +1,9 @@
 import config
+import csv
 import sqlite3
 import logging
 from datetime import datetime
+from unicodewriter import UnicodeWriter
 
 
 class DBHelper:
@@ -105,6 +107,40 @@ class DBHelper:
         logging.info('Quote analysis inserted and committed to database on database ID %s' % str(db_id))
 
         # Perhaps a conn.close is needed here?
+
+    def export_db(self, **kwargs):
+        if kwargs["format"] == "csv":
+
+            sql = "PRAGMA table_info(GPPT_Submissions)"
+            schema = self.cur.execute(sql).fetchall()
+            colnames = []
+            for col in schema:
+                colnames.append(col[1])
+            colnames.remove("Attachment_Binary")
+            colnames.remove("Message_Id")
+            colnames.remove("Attachment_Id")
+
+            sql = '''SELECT Id, Filename, Submitter, Region, Date, Lead_Office, P_Margin, Tot_Fee, Blended_Rate, 
+            Tot_Hours, Hours_Mgr, Hours_SPM, Hours_PM, Hours_Cons, Hours_Assoc, Method, Tool_Version 
+            FROM GPPT_Submissions'''
+
+            results = self.cur.execute(sql).fetchall()
+
+            with open("GPPT_Submissions.csv", "w") as f:
+                writer = UnicodeWriter(f)
+                writer.writerow(colnames)
+                # for row in results:
+                #     utf8_row = []
+                #     for cell in row:
+                #         if isinstance(cell, unicode):
+                #             s = cell.decode('utf-8')
+                #         elif isinstance(cell, int):
+                #             s = str(cell)
+                #         utf8_row.append(s.encode('utf-8'))
+                for row in results:
+                    writer.writerow(row)
+
+            logging.info("Database dumped to GPPT_Submissions.csv")
 
     def close(self):
         self.conn.close()
