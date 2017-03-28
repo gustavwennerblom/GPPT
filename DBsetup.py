@@ -1,9 +1,9 @@
-#NOTE - UNTESTED
+
 
 import sqlite3
 conn = sqlite3.Connection("submissions.db")
 cur = conn.cursor()
-cur.execute('''CREATE TABLE IF NOT EXISTS Test_SubmissionsC (
+cur.execute('''CREATE TABLE IF NOT EXISTS GPPT_Submissions (
     Id INTEGER PRIMARY KEY,
     Filename TEXT,
     Submitter TEXT,
@@ -22,7 +22,8 @@ cur.execute('''CREATE TABLE IF NOT EXISTS Test_SubmissionsC (
     Hours_PM INTEGER,
     Hours_Cons INTEGER,
     Hours_Assoc INTEGER,
-    Method TEXT)
+    Method TEXT,
+    Tool_Version TEXT)
     ''')
 
 cur.execute('''CREATE TABLE IF NOT EXISTS Test_Last_Update (

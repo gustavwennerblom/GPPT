@@ -5,17 +5,39 @@ from openpyxl.utils import coordinate_from_string, column_index_from_string
 
 # noinspection PyPep8Naming
 class ExcelParser:
+
+    # Returns the version number (as string) of the GPPT client tool
+    def determine_version(self):
+        ws = self.wb.worksheets[4]
+        version_string = ws['A1'].value
+        logging.info(version_string)
+        version = version_string[-4:].strip()
+        logging.info("Found submission from tool with version %s" % version)
+        return version
+
     # Support method to get the various alternative core sheets
     def get_sheet(self, sheetletter):
+        try:
+            version_number = float(self.determine_version())
+        except ValueError as error:
+            logging.error("Wrong format of tool version " + repr(error))
+            version_number  = 0.4
+
         if sheetletter == "A":
-            v04name = "Project pricing - consulting"
-            v06name = "A) Project pricing consulting"
-            if v04name in self.wb.get_sheet_names():
-                return self.wb.get_sheet_by_name(v04name)
-            elif v06name in self.wb.get_sheet_names():
-                return self.wb.get_sheet_by_name(v06name)
+            if version_number > 0.4:
+                return self.wb.get_sheet_by_name("A) Project pricing - consulting")
             else:
-                return self.wb.worksheets[1]
+                return self.wb.get_sheet_by_name("Project pricing - consulting")
+        # if sheetletter == "A":
+        #     v04name = "Project pricing - consulting"
+        #     v06name = "A) Project pricing consulting"
+        #     if v04name in self.wb.get_sheet_names():
+        #         return self.wb.get_sheet_by_name(v04name)
+        #     elif v06name in self.wb.get_sheet_names():
+        #         return self.wb.get_sheet_by_name(v06name)
+        #     else:
+        #         return self.wb.worksheets[1]
+
         elif sheetletter == "B":
             v02name = "Project planning"
             v04name = "B) Activity-role planning"
@@ -43,9 +65,14 @@ class ExcelParser:
     # Returns total project margin
     def get_margin(self):
         ws = self.get_sheet("A")
+        if float(self.determine_version())>0.4:
+            col=11
+        else:
+            col=13
+
         for cell in ws['B']:
             if cell.value == "SUBTOTAL":
-                return ws.cell(row=cell.row, column=13).value
+                return ws.cell(row=cell.row, column=col).value
         raise ExcelParsingError("Cannot find project margin in project file")
 
     # Returns total project fee

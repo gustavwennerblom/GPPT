@@ -7,3 +7,4 @@ CREDENTIALS.json
 calcs/
 .idea*
 *.log
+debug/

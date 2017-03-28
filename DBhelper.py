@@ -36,7 +36,7 @@ class DBHelper:
         return self.cur.execute(sql).fetchone()
 
     def duplicate_file(self, filename):
-        sql = "SELECT Id FROM Test_SubmissionsC WHERE Filename = ?"
+        sql = "SELECT Id FROM GPPT_Submissions WHERE Filename = ?"
         self.cur.execute(sql, (filename,))
         if not self.cur.fetchone():
             return False
@@ -44,7 +44,7 @@ class DBHelper:
             return True
 
     def duplicatemessage(self, message):
-        sql = "SELECT Id FROM Test_SubmissionsC WHERE Message_Id = ?"
+        sql = "SELECT Id FROM GPPT_Submissions WHERE Message_Id = ?"
         self.cur.execute(sql, (message.item_id, ))
         if not self.cur.fetchone():
             return False
@@ -59,7 +59,7 @@ class DBHelper:
             raise DuplicateFileError("File is already in database")
 
         self.cur.execute(
-            '''INSERT INTO Test_SubmissionsC
+            '''INSERT INTO GPPT_Submissions
             (Filename, Submitter, Region, Date, Message_Id, Attachment_Id, Attachment_Binary)
             VALUES (?, ?, ?, ?, ?, ?, ?)''',
             (filename, submitter, region, date, message_id, attachment_id, sqlite3.Binary(attachment))
@@ -75,13 +75,13 @@ class DBHelper:
 
     def countlines(self):
         # type: () -> int
-        sql = "SELECT Count(*) FROM Test_SubmissionsC;"
+        sql = "SELECT Count(*) FROM GPPT_Submissions;"
         result = self.cur.execute(sql).fetchone()[0]
         return result
 
     def insert_analysis(self, db_id, **kwargs):
         self.cur.execute(
-            '''UPDATE Test_SubmissionsC SET
+            '''UPDATE GPPT_Submissions SET
             Lead_Office=(?),
             P_Margin=(?),
             Tot_Fee=(?),
@@ -92,12 +92,13 @@ class DBHelper:
             Hours_PM=(?),
             Hours_Cons=(?),
             Hours_Assoc=(?),
-            Method=(?)
+            Method=(?),
+            Tool_Version=(?)
             WHERE ID = (?)''',
             (kwargs["lead_office"], kwargs["project_margin"], kwargs["total_fee"], kwargs["blended_hourly_rate"],
              kwargs["total_hours"], kwargs["hours_by_role"]["Manager"], kwargs["hours_by_role"]["SPM"],
              kwargs["hours_by_role"]["PM"], kwargs["hours_by_role"]["Cons"], kwargs["hours_by_role"]["Assoc"],
-             kwargs["pricing_method"], db_id)
+             kwargs["pricing_method"], kwargs["tool_version"], db_id)
         )
 
         self.conn.commit()
@@ -113,7 +114,7 @@ class DBHelper:
     def get_file_by_id(self, i):
 
         logging.info("Retrieving file with database index %s" % i)
-        row = self.cur.execute("SELECT (Attachment_Binary) FROM Test_SubmissionsC WHERE (ID=?)", (i,)).fetchone()
+        row = self.cur.execute("SELECT (Attachment_Binary) FROM GPPT_Submissions WHERE (ID=?)", (i,)).fetchone()
         tempfile_name = "Written_From_DB.xlsm"
         tempfile_contents = row[0]
         f = open(tempfile_name, "wb")
@@ -124,7 +125,7 @@ class DBHelper:
     # Returns list with all values from a specified column
     def get_column_values(self, col):
         result = []
-        sql = "SELECT ? FROM Test_SubmissionsC;"
+        sql = "SELECT ? FROM GPPT_Submissions;"
         out = self.cur.execute(sql, (col,)).fetchall()
         for item in out:
             result.append(item)

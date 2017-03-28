@@ -17,10 +17,6 @@ logging.basicConfig(filename="getcalcslog.log", format=FORMAT, level=config.logl
 # Counts number of submissions in a given folder
 def count_submissions_by_region(folder_name, account):
     f = account.inbox.get_folder_by_name(folder_name)
-    # counter = 0
-    # for item in f.all():
-    #     counter += 1
-    # return counter
     return f.total_count
 
 
@@ -77,10 +73,6 @@ def store_submission(mess):
                                          str(mess.item_id),
                                          str(mess.attachments[attachment_indices[i]].attachment_id),
                                          mess.attachments[attachment_indices[i]].content)
-        # if insert_index:
-        #    logging.info(
-        #        'Proceeding to store attachment number {0} in sequence of {1}.'.format(i + 1, attachments_no))
-        #    analyze_submission(insert_index)
 
         # The database row of each insert (can be multiple if multiple eligible attachments is saved in a list
         new_insert_indices.append(insert_index)
@@ -110,6 +102,7 @@ def get_all_new_messages(account):
         logging.info("Looking in folder %s" % str(folder))
         for submission in folder.all():
             try:
+                logging.info('Accessing submission with subject "%s"' % submission.subject)
                 db_indices = store_submission(submission)
                 # Unless store_submission has returned None, save row id in list to analyze
                 if isinstance(db_indices, list):
@@ -145,29 +138,20 @@ def analyze_submission(db_id):
     tempfile = db.get_file_by_id(db_id)
     parser = ExcelParser(tempfile)
 
-    # build dict to pass to database
-    # d = {}
-    # d["lead_office"] = parser.get_lead_office()
-    # d["project_margin"] = parser.get_margin()
-    # d["total_fee"] = parser.get_project_fee()
-    # d["total_hours"] = parser.get_total_hours()
-    # d["hours_by_role"] = parser.get_hours_by_role()  # Note: This returns a dict
-    # d["blended_hourly_rate"] = parser.get_blended_hourly_rate()
-    # d["pricing_method"] = parser.assess_pricing_method(db_id)
-
     db.insert_analysis(db_id, lead_office=parser.get_lead_office(),
                        project_margin=parser.get_margin(),
                        total_fee=parser.get_project_fee(),
                        total_hours=parser.get_total_hours(),
                        hours_by_role=parser.get_hours_by_role(),
                        blended_hourly_rate=parser.get_blended_hourly_rate(),
-                       pricing_method=parser.assess_pricing_method(db_id))
+                       pricing_method=parser.assess_pricing_method(db_id),
+                       tool_version=parser.determine_version())
 
 
 # Fallback method to rerun analysis on all submissions stored in database, in case of failure half way
 def reanalyze_all():
     db_lines = db.countlines()  # type: int
-    for index in range (150, db_lines + 1):
+    for index in range (1, db_lines + 1):
         analyze_submission(index)
 
 
@@ -202,24 +186,10 @@ def main():
         # noinspection PyUnboundLocalVariable
         # messages = get_new_messages("Americas", account)  # Early test of mailbox access
 
-    # First loop saves all new messages and attachment binaries into the database
-    # In branch allfolders, this is being refactored into the get_all_new_messages method
-    # all_new_rows = []
-    # for mess in messages:
-    #     try:
-    #         new_rows = store_submission(mess)
-    #         # Unless store_submission has returned None, save row id in list to analyze
-    #         if isinstance(new_rows, list):
-    #             for row in new_rows:
-    #                 all_new_rows.append(row)
-    #     except DuplicateFileError as error:
-    #         logging.error(repr(error))
-    #     except DuplicateMessageError as error:
-    #         logging.error(repr(error))
-    # logging.info("All new messages stored in database - moving to interpreting them")
-
+    # Triggers run on all exchange folders and stores messages in db
     all_new_rows = get_all_new_messages(account)
-    # Second loop iterates through all new inserted binaries and adds the analysis to the db
+
+    # Loop iterates through all new inserted binaries and adds the excel analysis to the db
     for submission_id in all_new_rows:
         try:
             analyze_submission(submission_id)
@@ -233,8 +203,15 @@ def main():
     db.close()
 
 if __name__ == '__main__':
-    # main()
-    reanalyze_all()
+    user_select = input("Menu:\n [1] Update all submissions \n [2] Rerun quote analysis on database \n >>")
+    if user_select ==  1:
+        main()
+    elif user_select == 2:
+        logging.info("Initializing database re-analysis")
+        reanalyze_all()
+    else:
+        print(user_select)
+        print 'Valid selections only "1" or "2". Please restart and try again'
 
 
 
