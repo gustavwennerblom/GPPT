@@ -5,7 +5,8 @@ import config
 import logging
 
 from DBhelper import DBHelper, DuplicateFileError, DuplicateMessageError
-from exchangelib import Account, Credentials, DELEGATE
+from exchangelib import Account, Credentials, DELEGATE, IMPERSONATION, Configuration, Build, NTLM, Version
+from exchangelib.version import EXCHANGE_2007
 from excel_parser import ExcelParser, ExcelParsingError
 
 
@@ -170,9 +171,15 @@ def main():
     # Ignore if in debug mode when working with a spoof message
     if not config.debug:
         # noinspection PyUnboundLocalVariable
-        account = Account(primary_smtp_address="projectproposals@business-sweden.se", credentials=credentials,
-                          autodiscover=True, access_type=DELEGATE)
-
+        configuration = Configuration(credentials=credentials,
+                                      server="mail.business-sweden.se",
+                                      version=Version(build=Build(8,0)),
+                                      auth_type=NTLM)
+        #account = Account(primary_smtp_address="projectproposals@business-sweden.se", credentials=credentials,
+        #                  autodiscover=True, access_type=DELEGATE)
+        account = Account(primary_smtp_address="projectproposals@business-sweden.se", config=configuration, access_type=DELEGATE)
+        import code
+        code.interact(local=locals())
     if config.debug:
         # USE BELOW TO INSERT A TEST MESSAGE IN THE DATABASE (CONFIGURE TEST MESSAGE IN MyMessage.py
         # insert_testmessage()
