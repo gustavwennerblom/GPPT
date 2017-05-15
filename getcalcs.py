@@ -1,5 +1,3 @@
-
-
 import json
 import config
 import logging
@@ -8,8 +6,10 @@ from DBhelper import DBHelper, DuplicateFileError, DuplicateMessageError
 from exchangelib import Account, Credentials, DELEGATE
 from excel_parser import ExcelParser, ExcelParsingError
 
-
+# Initialize database manager script
 db = DBHelper()
+
+# Initialize log
 FORMAT = '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
 logging.basicConfig(filename="getcalcslog.log", format=FORMAT, level=config.loglevel)
 
@@ -91,7 +91,7 @@ def get_new_messages(folder_name, account):
 
     return new_submissions
 
-
+# Looks through all messages in all folders in an account, finds new messages
 def get_all_new_messages(account):
     logging.info("Initializing message downloads")
     all_new_rows = []
@@ -187,6 +187,7 @@ def main():
         # messages = get_new_messages("Americas", account)  # Early test of mailbox access
 
     # Triggers run on all exchange folders and stores messages in db
+
     all_new_rows = get_all_new_messages(account)
 
     # Loop iterates through all new inserted binaries and adds the excel analysis to the db
