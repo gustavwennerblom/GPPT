@@ -165,6 +165,7 @@ def main():
             text = j.readline()
             d = json.loads(text)
         credentials = Credentials(username=d["UID"], password=d["PWD"])
+        logging.info("Accessing Exchange credentials")
 
     # Referencing Exchange account to fetch submissions from the projectproposal mailbox
     # Ignore if in debug mode when working with a spoof message
