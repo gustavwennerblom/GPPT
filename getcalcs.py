@@ -96,7 +96,7 @@ def get_all_new_messages(account):
     logging.info("Initializing message downloads")
     all_new_rows = []
     allfolders = account.inbox.get_folders()
-    allfolders.append(account.inbox)
+    # allfolders.append(account.inbox)      # Breaks down in exchangelib 1.10
 
     for folder in allfolders:
         logging.info("Looking in folder %s" % str(folder))

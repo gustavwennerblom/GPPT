@@ -1,5 +1,5 @@
 import logging
-loglevel = logging.DEBUG
+loglevel = logging.INFO
 debug = False
 enforce_unique_messages = True
 enforce_unique_files = True
