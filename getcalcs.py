@@ -3,7 +3,7 @@ import config
 import logging
 
 from DBhelper import DBHelper, DuplicateFileError, DuplicateMessageError
-from exchangelib import Account, Credentials, DELEGATE
+from exchangelib import Account, Credentials, DELEGATE, Configuration, Version, Build
 from excel_parser import ExcelParser, ExcelParsingError
 
 # Initialize database manager script
@@ -96,7 +96,7 @@ def get_all_new_messages(account):
     logging.info("Initializing message downloads")
     all_new_rows = []
     allfolders = account.inbox.get_folders()
-    allfolders.append(account.inbox)
+    # allfolders.append(account.inbox)      # Breaks down in exchangelib 1.10
 
     for folder in allfolders:
         logging.info("Looking in folder %s" % str(folder))
@@ -170,9 +170,10 @@ def main():
     # Referencing Exchange account to fetch submissions from the projectproposal mailbox
     # Ignore if in debug mode when working with a spoof message
     if not config.debug:
+        config_office365 = Configuration(server="outlook.office365.com", credentials=credentials)
         # noinspection PyUnboundLocalVariable
-        account = Account(primary_smtp_address="projectproposals@business-sweden.se", credentials=credentials,
-                          autodiscover=True, access_type=DELEGATE)
+        account = Account(primary_smtp_address="projectproposals@business-sweden.se", config=config_office365,
+                          autodiscover=False, access_type=DELEGATE)
 
     if config.debug:
         # USE BELOW TO INSERT A TEST MESSAGE IN THE DATABASE (CONFIGURE TEST MESSAGE IN MyMessage.py
