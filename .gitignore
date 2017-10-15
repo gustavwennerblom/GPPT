@@ -1,4 +1,5 @@
 CREDENTIALS.json
+credentials/
 *.db
 *.pyc
 *.xls
