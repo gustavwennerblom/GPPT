@@ -180,8 +180,16 @@ def main():
         logging.info('Triggering import of test Message')
         from MyMessage import MyMessage
         m = MyMessage()
-        mess = m.get_message()
-        all_new_rows = [mess]
+        testmail = m.get_message()
+        db.insert_message(testmail.attachments[0].name,
+                          testmail.sender,
+                          testmail.subject,
+                          str(testmail.datetime_sent),
+                          str(testmail.item_id),
+                          str(testmail.attachments[0].attachment_id),
+                          testmail.attachments[0].content)
+        import sys
+        sys.exit(1)
     else:
         logging.info("Entering live mode with connection to Exchange server")
         # noinspection PyUnboundLocalVariable

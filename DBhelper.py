@@ -1,11 +1,11 @@
 import config
-import csv
-import sqlite3
+# import sqlite3
 import mysql.connector
 import logging
 from datetime import datetime
 from unicodewriter import UnicodeWriter
 import credentials.DBcreds as DBcreds
+
 
 class DBHelper:
 
@@ -39,7 +39,7 @@ class DBHelper:
         return self.cur.execute(sql).fetchone()
 
     def duplicate_file(self, filename):
-        sql = "SELECT Id FROM GPPT_Submissions WHERE Filename = ?"
+        sql = "SELECT Id FROM GPPT_Submissions WHERE Filename = %s"
         self.cur.execute(sql, (filename,))
         if not self.cur.fetchone():
             return False
@@ -47,7 +47,7 @@ class DBHelper:
             return True
 
     def duplicatemessage(self, message):
-        sql = "SELECT Id FROM GPPT_Submissions WHERE Message_Id = ?"
+        sql = "SELECT Id FROM GPPT_Submissions WHERE Message_Id = %s"
         self.cur.execute(sql, (message.item_id, ))
         if not self.cur.fetchone():
             return False
@@ -64,13 +64,13 @@ class DBHelper:
         self.cur.execute(
             '''INSERT INTO GPPT_Submissions
             (Filename, Submitter, Region, Date, Message_Id, Attachment_Id, Attachment_Binary)
-            VALUES (?, ?, ?, ?, ?, ?, ?)''',
-            (filename, submitter, region, date, message_id, attachment_id, sqlite3.Binary(attachment))
+            VALUES (%s, %s, %s, %s, %s, %s, %s)''',
+            (filename, submitter, region, date, message_id, attachment_id, attachment)
         )
         self.conn.commit()
         logging.info("Message metadata and eligible attached files committed to database.")
 
-        i = self.cur.execute("SELECT last_insert_rowid()").fetchone()[0]
+        i = self.cur.lastrowid
         logging.info('Last message insert available on row %s in database' % str(i))
         return i
 
@@ -85,19 +85,19 @@ class DBHelper:
     def insert_analysis(self, db_id, **kwargs):
         self.cur.execute(
             '''UPDATE GPPT_Submissions SET
-            Lead_Office=(?),
-            P_Margin=(?),
-            Tot_Fee=(?),
-            Blended_Rate=(?),
-            Tot_Hours=(?),
-            Hours_Mgr=(?),
-            Hours_SPM=(?),
-            Hours_PM=(?),
-            Hours_Cons=(?),
-            Hours_Assoc=(?),
-            Method=(?),
-            Tool_Version=(?)
-            WHERE ID = (?)''',
+            Lead_Office=(%s),
+            P_Margin=(%s),
+            Tot_Fee=(%s),
+            Blended_Rate=(%s),
+            Tot_Hours=(%s),
+            Hours_Mgr=(%s),
+            Hours_SPM=(%s),
+            Hours_PM=(%s),
+            Hours_Cons=(%s),
+            Hours_Assoc=(%s),
+            Method=(%s),
+            Tool_Version=(%s)
+            WHERE ID = (%s)''',
             (kwargs["lead_office"], kwargs["project_margin"], kwargs["total_fee"], kwargs["blended_hourly_rate"],
              kwargs["total_hours"], kwargs["hours_by_role"]["Manager"], kwargs["hours_by_role"]["SPM"],
              kwargs["hours_by_role"]["PM"], kwargs["hours_by_role"]["Cons"], kwargs["hours_by_role"]["Assoc"],
@@ -151,7 +151,7 @@ class DBHelper:
     def get_file_by_id(self, i):
 
         logging.info("Retrieving file with database index %s" % i)
-        row = self.cur.execute("SELECT (Attachment_Binary) FROM GPPT_Submissions WHERE (ID=?)", (i,)).fetchone()
+        row = self.cur.execute("SELECT (Attachment_Binary) FROM GPPT_Submissions WHERE (ID=%s)", (i,)).fetchone()
         tempfile_name = "Written_From_DB.xlsm"
         tempfile_contents = row[0]
         f = open(tempfile_name, "wb")
@@ -162,7 +162,7 @@ class DBHelper:
     # Returns list with all values from a specified column
     def get_column_values(self, col):
         result = []
-        sql = "SELECT ? FROM GPPT_Submissions;"
+        sql = "SELECT %s FROM GPPT_Submissions;"
         out = self.cur.execute(sql, (col,)).fetchall()
         for item in out:
             result.append(item)
@@ -176,11 +176,12 @@ class DBHelper:
         user = DBcreds.user
         password = DBcreds.password
         self.conn = mysql.connector.connect(user=user,
-                                            password= password,
+                                            password=password,
                                             host='127.0.0.1',
                                             database=self.dbname)
         # self.conn = sqlite3.Connection("submissions.db")
-        self.cur = self.conn.cursor()
+        # buffering kwarg - see https://stackoverflow.com/questions/29772337/python-mysql-connector-unread-result-found-when-using-fetchone
+        self.cur = self.conn.cursor(buffered=True)
 
 
 class DuplicateFileError(Exception):

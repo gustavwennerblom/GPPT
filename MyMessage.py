@@ -2,6 +2,7 @@
 
 import exchangelib as exc
 import exchangelib.ewsdatetime as ews
+from exchangelib.attachments import FileAttachment, AttachmentId
 import logging
 from datetime import datetime
 import random
@@ -39,10 +40,10 @@ class MyMessage:
             try:
                 os.chdir("./calcs")
                 logging.info("Accessing: %s" % myfile)
-                f=open(myfile, mode='rb')
+                f = open(myfile, mode='rb')
                 file_contents = f.read()
                 suffix = random.randint(0,99999)
-                att = exc.folders.FileAttachment(name=myfile, content=file_contents, attachment_id=exc.folders.AttachmentId("ABC"+str(suffix)))
+                att = FileAttachment(name=myfile, content=file_contents, attachment_id=AttachmentId())
                 self.m.attach(att)
                 f.close()
                 os.chdir("..")

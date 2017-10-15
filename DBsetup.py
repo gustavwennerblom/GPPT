@@ -12,7 +12,7 @@ conn = mysql.connector.connect(user=DBcreds.user,
 cur = conn.cursor()
 
 cur.execute('''CREATE TABLE IF NOT EXISTS GPPT_Submissions (
-    Id INTEGER PRIMARY KEY,
+    Id INTEGER PRIMARY KEY AUTO_INCREMENT,
     Filename TEXT,
     Submitter TEXT,
     Region TEXT,
@@ -31,7 +31,9 @@ cur.execute('''CREATE TABLE IF NOT EXISTS GPPT_Submissions (
     Hours_Cons INTEGER,
     Hours_Assoc INTEGER,
     Method TEXT,
-    Tool_Version TEXT)
+    Tool_Version TEXT,
+    SaleID INTEGER,
+    ProjNo INTEGER)
     ''')
 
 cur.execute('''CREATE TABLE IF NOT EXISTS Test_Last_Update (
