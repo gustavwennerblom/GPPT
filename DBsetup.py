@@ -19,7 +19,7 @@ cur.execute('''CREATE TABLE IF NOT EXISTS GPPT_Submissions (
     Date TEXT,
     Message_Id TEXT,
     Attachment_Id TEXT,
-    Attachment_Binary BLOB,
+    Attachment_Binary MEDIUMBLOB,
     Lead_Office TEXT,
     P_Margin REAL,
     Tot_Fee INTEGER,
@@ -40,3 +40,5 @@ cur.execute('''CREATE TABLE IF NOT EXISTS Test_Last_Update (
     Id INTEGER PRIMARY KEY,
     Updated TEXT)
     ''')
+
+
