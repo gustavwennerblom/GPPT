@@ -1,10 +1,11 @@
 import config
 import csv
 import sqlite3
+import mysql.connector
 import logging
 from datetime import datetime
 from unicodewriter import UnicodeWriter
-
+import credentials.DBcreds as DBcreds
 
 class DBHelper:
 
@@ -167,9 +168,18 @@ class DBHelper:
             result.append(item)
         return result
 
-    def __init__(self, dbname="submissions.db"):
+    # __init__ starts up a connection to a given database
+    # Access credentials are taken from a "DBcreds.py" in a subdirectory "credentials"
+    # DBcreds.py must include a variable "user" and one "password"
+    def __init__(self, dbname="submissions"):
         self.dbname = dbname
-        self.conn = sqlite3.Connection("submissions.db")
+        user = DBcreds.user
+        password = DBcreds.password
+        self.conn = mysql.connector.connect(user=user,
+                                            password= password,
+                                            host='127.0.0.1',
+                                            database=self.dbname)
+        # self.conn = sqlite3.Connection("submissions.db")
         self.cur = self.conn.cursor()
 
 

@@ -3,7 +3,7 @@ import config
 import logging
 
 from DBhelper import DBHelper, DuplicateFileError, DuplicateMessageError
-from exchangelib import Account, Credentials, DELEGATE, Configuration, Version, Build
+from exchangelib import Account, Credentials, DELEGATE, Configuration
 from excel_parser import ExcelParser, ExcelParsingError
 
 # Initialize database manager script
@@ -91,6 +91,7 @@ def get_new_messages(folder_name, account):
 
     return new_submissions
 
+
 # Looks through all messages in all folders in an account, finds new messages
 def get_all_new_messages(account):
     logging.info("Initializing message downloads")
@@ -128,8 +129,8 @@ def get_one_message(folder_name, account):
 # Basic run function to print a count of submissions by region
 def count_all(account):
     regions = ["Americas", "APAC", "MEA", "CEE", "Western Europe"]
-    for x in regions:
-        print "%s: %i submissions" % (x, count_submissions_by_region(x, account))
+    for region in regions:
+        print("%s: %i submissions" % (region, count_submissions_by_region(region, account)))
 
 
 # Reviews an xlsm file in the database and prints to stdout a set of data about it
@@ -151,13 +152,11 @@ def analyze_submission(db_id):
 # Fallback method to rerun analysis on all submissions stored in database, in case of failure half way
 def reanalyze_all():
     db_lines = db.countlines()  # type: int
-    for index in range (1, db_lines + 1):
+    for index in range(1, db_lines + 1):
         analyze_submission(index)
 
 
-
 def main():
-
     # Credentials for access to mailbox
     # Ignore if in debug mode when working with a spoof message
     if not config.debug:
@@ -182,15 +181,13 @@ def main():
         from MyMessage import MyMessage
         m = MyMessage()
         mess = m.get_message()
-        messages = [mess]
+        all_new_rows = [mess]
     else:
         logging.info("Entering live mode with connection to Exchange server")
         # noinspection PyUnboundLocalVariable
         # messages = get_new_messages("Americas", account)  # Early test of mailbox access
-
-    # Triggers run on all exchange folders and stores messages in db
-
-    all_new_rows = get_all_new_messages(account)
+        # Triggers run on all exchange folders and stores messages in db
+        all_new_rows = get_all_new_messages(account)
 
     # Loop iterates through all new inserted binaries and adds the excel analysis to the db
     for submission_id in all_new_rows:
@@ -201,7 +198,7 @@ def main():
 
     # Finally, reporting back all sucessful and closing database connection
     logging.info("All messages interpreted.")
-    print ("All done, closing connection to database")
+    print("All done, closing connection to database")
     logging.info("Closing database")
     db.close()
 
@@ -211,17 +208,17 @@ if __name__ == '__main__':
                         "[2] Rerun quote analysis on database \n "
                         "[3] Export to csv file \n "
                         ">>")
-    if user_select ==  1:
+    if user_select == "1":
         main()
-    elif user_select == 2:
+    elif user_select == "2":
         logging.info("Initializing database re-analysis")
         reanalyze_all()
-    elif user_select == 3:
+    elif user_select == "3":
         logging.info("Initializing export")
         db.export_db(format="csv")
     else:
         print(user_select)
-        print 'Valid selections only "1" or "2" or "3". Please restart and try again'
+        print('Valid selections only "1" or "2" or "3". Please restart and try again')
 
 
 

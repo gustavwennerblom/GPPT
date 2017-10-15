@@ -1,8 +1,16 @@
 
 
-import sqlite3
-conn = sqlite3.Connection("submissions.db")
+# import sqlite3
+# conn = sqlite3.Connection("submissions.db")
+from credentials import DBcreds
+import mysql.connector
+
+conn = mysql.connector.connect(user=DBcreds.user,
+                               password=DBcreds.password,
+                               host='127.0.0.1',
+                               database="submissions")
 cur = conn.cursor()
+
 cur.execute('''CREATE TABLE IF NOT EXISTS GPPT_Submissions (
     Id INTEGER PRIMARY KEY,
     Filename TEXT,
