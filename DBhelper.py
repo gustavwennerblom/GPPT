@@ -5,7 +5,7 @@ import logging
 from datetime import datetime
 from unicodewriter import UnicodeWriter
 import credentials.DBcreds as DBcreds
-
+import sys
 
 class DBHelper:
 
@@ -22,8 +22,8 @@ class DBHelper:
             t = datetime.now()
             timestamp = datetime.strftime(t, "%Y-%m-%d-%H-%M-%S")
 
-        sql = "UPDATE Test_Last_Update SET Updated=? WHERE ID=1"
-        self.cur.execute(sql, (timestamp,))
+        sql = "UPDATE Test_Last_Update SET Updated=%s WHERE ID=1"
+        result = self.cur.execute(sql, (timestamp,))
         self.conn.commit()
         logging.info('Database timestamp for latest update set to %s' % timestamp)
 
@@ -40,8 +40,8 @@ class DBHelper:
 
     def duplicate_file(self, filename):
         sql = "SELECT Id FROM GPPT_Submissions WHERE Filename = %s"
-        self.cur.execute(sql, (filename,))
-        if not self.cur.fetchone():
+        duplicate_list = self.cur.execute(sql, (filename,))
+        if not duplicate_list:
             return False
         else:
             return True
@@ -56,17 +56,18 @@ class DBHelper:
 
             # Inserts an set of data as a new row in the database. Returns the index of that last insert.
     def insert_message(self, filename, submitter, region, date, message_id, attachment_id, attachment):
-        if self.duplicate_file(filename) and config.enforce_unique_files:
-            logging.warning('Attempt to insert file %s in database disallowed. Set enforce_unique_files in '
-                            'config-py to "False" to allow' % filename)
-            raise DuplicateFileError("File is already in database")
+
+        # DUPLICATE CHECK DISABLED DURING BUGCHECK
+        # if self.duplicate_file(filename) and config.enforce_unique_files:
+        #     logging.warning('Attempt to insert file %s in database disallowed. Set enforce_unique_files in '
+        #                     'config-py to "False" to allow' % filename)
+        #     raise DuplicateFileError("File is already in database")
 
         self.cur.execute(
             '''INSERT INTO GPPT_Submissions
             (Filename, Submitter, Region, Date, Message_Id, Attachment_Id, Attachment_Binary)
             VALUES (%s, %s, %s, %s, %s, %s, %s)''',
-            (filename, submitter, region, date, message_id, attachment_id, attachment)
-        )
+            (filename, submitter, region, date, message_id, attachment_id, attachment))
         self.conn.commit()
         logging.info("Message metadata and eligible attached files committed to database.")
 
@@ -78,8 +79,9 @@ class DBHelper:
 
     def countlines(self):
         # type: () -> int
-        sql = "SELECT Count(*) FROM GPPT_Submissions;"
+        sql = "SELECT COUNT(*) FROM GPPT_Submissions"
         result = self.cur.execute(sql).fetchone()[0]
+        self.cur.fetchall()
         return result
 
     def insert_analysis(self, db_id, **kwargs):
@@ -149,9 +151,13 @@ class DBHelper:
 
     # Retrieves a file from the database and returns the filename for it
     def get_file_by_id(self, i):
-
         logging.info("Retrieving file with database index %s" % i)
-        row = self.cur.execute("SELECT (Attachment_Binary) FROM GPPT_Submissions WHERE (ID=%s)", (i,)).fetchone()
+
+        # Override to get it working
+        last_index = self.cur.lastrowid
+
+        row = self.cur.execute("SELECT (Attachment_Binary) FROM GPPT_Submissions WHERE (ID = %s)", (str(i),)).fetchone()
+        #row = self.cur.execute("SELECT * FROM GPPT_Submissions WHERE (ID=%s)", (i,)).fetchall()
         tempfile_name = "Written_From_DB.xlsm"
         tempfile_contents = row[0]
         f = open(tempfile_name, "wb")
@@ -181,7 +187,7 @@ class DBHelper:
                                             database=self.dbname)
         # self.conn = sqlite3.Connection("submissions.db")
         # buffering kwarg - see https://stackoverflow.com/questions/29772337/python-mysql-connector-unread-result-found-when-using-fetchone
-        self.cur = self.conn.cursor(buffered=True)
+        self.cur = self.conn.cursor()
 
 
 class DuplicateFileError(Exception):

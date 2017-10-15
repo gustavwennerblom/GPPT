@@ -42,23 +42,24 @@ def check_attachments(attachments):
 # Stores a submission received as an email message into the database. Returns the database index of that submission
 def store_submission(mess):
     # Checking if this specific Message has been store in the database already. Return 'None' if duplicate.
-    # noinspection PyUnreachableCode
-    if db.duplicatemessage(mess) and config.enforce_unique_messages:
-        logging.warning('Attempt to insert message with EWS ID %s disallowed by configuration. '
-                        'Set enforce_unique_files in config.py to "False" to allow.' % mess.item_id)
-        try:
-            raise DuplicateMessageError('Message (subject "%s") with this EWS message ID is already '
-                                        'in database' % mess.subject)
-        except UnicodeEncodeError as error:
-            logging.error("Message with this EWS message ID (and cumbersome Unicode title) "
-                          "already in database " + repr(error))
+    # DISABLED DURING BUGCHECK
+    # if db.duplicatemessage(mess) and config.enforce_unique_messages:
+    #     logging.warning('Attempt to insert message with EWS ID %s disallowed by configuration. '
+    #                     'Set enforce_unique_files in config.py to "False" to allow.' % mess.item_id)
+    #     try:
+    #         raise DuplicateMessageError('Message (subject "%s") with this EWS message ID is already '
+    #                                     'in database' % mess.subject)
+    #     except UnicodeEncodeError as error:
+    #         logging.error("Message with this EWS message ID (and cumbersome Unicode title) "
+    #                       "already in database " + repr(error))
 
     # Check for eligible attachments and stores references to those in the attachment list
     attachment_indices = check_attachments(mess.attachments)
     attachments_no = len(attachment_indices)
     logging.debug('Found %i attachments' % attachments_no)
 
-    db.set_timestamp()
+    # IMPORTANT - DISABLING TIMESTAMP FOR BUGFIXES
+    # db.set_timestamp()
 
     # Resetting return variable
     new_insert_indices = []
@@ -67,7 +68,7 @@ def store_submission(mess):
         logging.info("Inserting submission message with subject: %s" % mess.subject)
         # db.insert_message returns the row id of the latest insert
         insert_index = db.insert_message(mess.attachments[attachment_indices[i]].name,
-                                         mess.sender.email_address,
+                                         mess.sender,
                                          mess.subject,
                                          str(mess.datetime_received),
                                          str(mess.item_id),
@@ -133,8 +134,7 @@ def count_all(account):
         print("%s: %i submissions" % (region, count_submissions_by_region(region, account)))
 
 
-# Reviews an xlsm file in the database and prints to stdout a set of data about it
-# noinspection PyDictCreation
+# Reviews an xlsm file in the database, parses its contents, and commits the content to the database
 def analyze_submission(db_id):
     tempfile = db.get_file_by_id(db_id)
     parser = ExcelParser(tempfile)
@@ -181,15 +181,9 @@ def main():
         from MyMessage import MyMessage
         m = MyMessage()
         testmail = m.get_message()
-        db.insert_message(testmail.attachments[0].name,
-                          testmail.sender,
-                          testmail.subject,
-                          str(testmail.datetime_sent),
-                          str(testmail.item_id),
-                          str(testmail.attachments[0].attachment_id),
-                          testmail.attachments[0].content)
-        import sys
-        sys.exit(1)
+        all_new_rows = store_submission(testmail)
+
+
     else:
         logging.info("Entering live mode with connection to Exchange server")
         # noinspection PyUnboundLocalVariable
@@ -215,6 +209,7 @@ if __name__ == '__main__':
                         "[1] Update all submissions \n "
                         "[2] Rerun quote analysis on database \n "
                         "[3] Export to csv file \n "
+                        "[4] Flush old fetchones \n"
                         ">>")
     if user_select == "1":
         main()
@@ -224,6 +219,10 @@ if __name__ == '__main__':
     elif user_select == "3":
         logging.info("Initializing export")
         db.export_db(format="csv")
+    elif user_select == "4":
+        result = db.cur.fetchone()
+        print(result)
+        print("Bye")
     else:
         print(user_select)
         print('Valid selections only "1" or "2" or "3". Please restart and try again')
