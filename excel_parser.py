@@ -10,9 +10,9 @@ class ExcelParser:
     def determine_version(self):
         ws = self.wb.worksheets[4]
         version_string = ws['A1'].value
-        logging.info(version_string)
+        # logging.info(version_string)
         version = version_string[-4:].strip()
-        logging.info("Found submission from tool with version %s" % version)
+        # logging.info("Found submission from tool with version %s" % version)
         return version
 
     # Support method to get the various alternative core sheets

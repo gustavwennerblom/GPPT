@@ -8,8 +8,8 @@ from datetime import datetime
 
 conn = mysql.connector.connect(user=DBcreds.user,
                                password=DBcreds.password,
-                               host='127.0.0.1',
-                               database="submissions")
+                               host=DBcreds.host,
+                               database=DBcreds.database)
 cur = conn.cursor()
 
 cur.execute('''CREATE TABLE IF NOT EXISTS GPPT_Submissions (

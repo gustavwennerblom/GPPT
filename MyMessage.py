@@ -1,5 +1,3 @@
-
-
 import exchangelib as exc
 import exchangelib.ewsdatetime as ews
 from exchangelib.attachments import FileAttachment, AttachmentId
@@ -35,7 +33,7 @@ class MyMessage:
         import os
         cwd=os.getcwd()
         filenames=os.listdir(cwd+u"/calcs")
-        myfiles=[filenames[0]]
+        myfiles=[filenames[2], filenames[1]]
         for myfile in myfiles:
             try:
                 os.chdir("./calcs")

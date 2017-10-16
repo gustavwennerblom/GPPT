@@ -1,6 +1,4 @@
 import config
-# import sqlite3
-import mysql.connector
 import pymysql
 import logging
 from datetime import datetime
@@ -58,11 +56,11 @@ class DBHelper:
             # Inserts an set of data as a new row in the database. Returns the index of that last insert.
     def insert_message(self, filename, submitter, region, date, message_id, attachment_id, attachment):
 
-        # DUPLICATE CHECK DISABLED DURING BUGCHECK
-        # if self.duplicate_file(filename) and config.enforce_unique_files:
-        #     logging.warning('Attempt to insert file %s in database disallowed. Set enforce_unique_files in '
-        #                     'config-py to "False" to allow' % filename)
-        #     raise DuplicateFileError("File is already in database")
+        # Check if file is already in database and raise error if so
+        if self.duplicate_file(filename) and config.enforce_unique_files:
+            logging.warning('Attempt to insert file %s in database disallowed. Set enforce_unique_files in '
+                            'config-py to "False" to allow' % filename)
+            raise DuplicateFileError("File is already in database")
 
         self.cur.execute(
             '''INSERT INTO GPPT_Submissions
@@ -76,13 +74,12 @@ class DBHelper:
         logging.info('Last message insert available on row %s in database' % str(i))
         return i
 
-        # Perhaps a conn.close is needed here?
-
     def countlines(self):
         # type: () -> int
         sql = "SELECT COUNT(*) FROM GPPT_Submissions"
-        result = self.cur.execute(sql).fetchone()[0]
-        self.cur.fetchall()
+        self.cur.execute(sql)
+        result = self.cur.fetchone()[0]
+
         return result
 
     def insert_analysis(self, db_id, **kwargs):
@@ -109,8 +106,6 @@ class DBHelper:
 
         self.conn.commit()
         logging.info('Quote analysis inserted and committed to database on database ID %s' % str(db_id))
-
-        # Perhaps a conn.close is needed here?
 
     def export_db(self, **kwargs):
         if kwargs["format"] == "csv":
@@ -154,12 +149,9 @@ class DBHelper:
     def get_file_by_id(self, i):
         logging.info("Retrieving file with database index %s" % i)
 
-        # Override to get it working
-        #last_index = self.cur.lastrowid
         self.cur.execute("SELECT (Attachment_Binary) FROM GPPT_Submissions WHERE (ID=%s)", (i,))
         row = self.cur.fetchone()
-        #row = self.cur.execute("SELECT * FROM GPPT_Submissions WHERE (ID=%s)", (i,)).fetchall()
-        tempfile_name = "Written_From_DB.xlsm"
+        tempfile_name = "__Written_From_DB__.xlsm"
         tempfile_contents = row[0]
         f = open(tempfile_name, "wb")
         f.write(tempfile_contents)
@@ -178,28 +170,32 @@ class DBHelper:
     # __init__ starts up a connection to a given database
     # Access credentials are taken from a "DBcreds.py" in a subdirectory "credentials"
     # DBcreds.py must include a variable "user" and one "password"
-    def __init__(self, dbname="submissions"):
-        self.dbname = dbname
+    def __init__(self):
         user = DBcreds.user
         password = DBcreds.password
+        host = DBcreds.host
+        database = DBcreds.database
+
 
         ### pymsql connection string
-        self.conn = pymysql.connect(user=user,
-                                    password=password,
-                                    host='127.0.0.1',
-                                    database=self.dbname)
-        self.cur = self.conn.cursor()
+        # self.conn = pymysql.connect(user=user,
+        #                             password=password,
+        #                             host=host,
+        #                             database=database)
+        # self.cur = self.conn.cursor()
 
         ### mysql.connector connection string
-        # self.conn = mysql.connector.connect(user=user,
-        #                                     password=password,
-        #                                     host='127.0.0.1',
-        #                                     database=self.dbname)
+        import mysql.connector
+        self.conn = mysql.connector.connect(user=user,
+                                            password=password,
+                                            host=host,
+                                            database=database)
 
         # buffering kwarg - see https://stackoverflow.com/questions/29772337/python-mysql-connector-unread-result-found-when-using-fetchone
-        # self.cur = self.conn.cursor(buffered=True)
+        self.cur = self.conn.cursor(buffered=True)
 
         ### SQLite connection string
+        # import sqlite3
         # self.conn = sqlite3.Connection("submissions.db")
 
 class DuplicateFileError(Exception):
