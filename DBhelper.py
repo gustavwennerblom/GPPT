@@ -39,10 +39,10 @@ class DBHelper:
     def duplicate_file(self, filename):
         sql = "SELECT Id FROM GPPT_Submissions WHERE Filename = ?"
         duplicate_list = self.cur.execute(sql, (filename,))
-        if not duplicate_list:
-            return False
-        else:
+        if duplicate_list.fetchone():
             return True
+        else:
+            return False
 
     def duplicatemessage(self, message):
         sql = "SELECT Id FROM GPPT_Submissions WHERE Message_Id = ?"
