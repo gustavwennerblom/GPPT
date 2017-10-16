@@ -1,6 +1,6 @@
 import sqlite3
 from credentials import DBcreds
-import mysql.connector
+# import mysql.connector
 from datetime import datetime
 import config
 import sys

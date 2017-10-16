@@ -99,18 +99,24 @@ def get_all_new_messages(account):
 
     for folder in allfolders:
         logging.info("Looking in folder %s" % str(folder))
-        for submission in folder.all():
-            try:
-                logging.info('Accessing submission with subject "%s"' % submission.subject)
-                db_indices = store_submission(submission)
-                # Unless store_submission has returned None, save row id in list to analyze
-                if isinstance(db_indices, list):
-                    all_new_rows += db_indices
-            except DuplicateFileError as error:
-                logging.error(repr(error))
-            except DuplicateMessageError as error:
-                logging.error(repr(error))
-
+        number_of_emails = folder.all().count()
+        logging.info("Found {0} messages in folder {1}".format(number_of_emails, folder))
+        emails_remaining = number_of_emails
+        while emails_remaining > 0:
+            amount_to_fetch = min(emails_remaining, 10)
+            logging.info("Getting {0} new emails, {1} remaining".format(amount_to_fetch, emails_remaining))
+            for submission in folder.all().order_by('-datetime_received')[:amount_to_fetch]:
+                try:
+                    logging.info('Accessing submission with subject "%s"' % submission.subject)
+                    db_indices = store_submission(submission)
+                    # Unless store_submission has returned None, save row id in list to analyze
+                    if isinstance(db_indices, list):
+                        all_new_rows += db_indices
+                except DuplicateFileError as error:
+                    logging.error(repr(error))
+                except DuplicateMessageError as error:
+                    logging.error(repr(error))
+            emails_remaining -= amount_to_fetch
     return all_new_rows
 
 
@@ -145,6 +151,7 @@ def analyze_submission(db_id):
                        pricing_method=parser.assess_pricing_method(db_id),
                        tool_version=parser.determine_version())
 
+
 # Fallback method to rerun analysis on all submissions stored in database, in case of failure half way
 def reanalyze_all():
     db_lines = db.countlines()  # type: int
@@ -155,6 +162,7 @@ def reanalyze_all():
 def main():
     # Credentials for access to mailbox
     # Ignore if in debug mode when working with a spoof message
+    credentials = None
     if not config.debug:
         with open("./credentials/CREDENTIALS.json") as j:
             text = j.readline()
@@ -176,7 +184,7 @@ def main():
         from MyMessage import MyMessage
         m = MyMessage()
         testmail = m.get_message()
-        all_new_rows=[]
+        all_new_rows = []
 
         try:
             all_new_rows = store_submission(testmail)
