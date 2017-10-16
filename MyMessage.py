@@ -4,6 +4,7 @@ from exchangelib.attachments import FileAttachment, AttachmentId
 import logging
 from datetime import datetime
 import random
+from collections import namedtuple
 
 class MyMessage:
     # Instancing the class returns a default message
@@ -22,10 +23,14 @@ class MyMessage:
         # timestamps the message with current date and time
         time = self.convert_to_EWStime(datetime.now())
 
+        # Create a namedtuple to simulate exchangelib Mailbox object
+        FakeSender = namedtuple("FakeSender", ["email_address"])
+        my_sender = FakeSender("foo@bar.com")
+
         self.m = exc.Message(
             subject="[AM] Test",
             item_id = "DEF568",
-            sender="Foo@Bar",
+            sender=my_sender,
             body="Test message",
             datetime_sent = time
         )
