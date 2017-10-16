@@ -152,9 +152,9 @@ class DBHelper:
         row = self.cur.fetchone()
         tempfile_name = "__Written_From_DB__.xlsm"
         tempfile_contents = row[0]
-        f = open(tempfile_name, "wb")
-        f.write(tempfile_contents)
-        f.close()
+
+        with open(tempfile_name, "wb") as f:
+            f.write(tempfile_contents)
         return tempfile_name
 
     # Returns list with all values from a specified column
