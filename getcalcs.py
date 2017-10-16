@@ -7,7 +7,7 @@ from exchangelib import Account, Credentials, DELEGATE, Configuration
 from excel_parser import ExcelParser, ExcelParsingError
 
 # Initialize database manager script
-db = DBHelper()
+# db = DBHelper()
 
 # Initialize log
 FORMAT = '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
@@ -56,13 +56,15 @@ def store_submission(mess):
     # Check for eligible attachments and stores references to those in the attachment list
     attachment_indices = check_attachments(mess.attachments)
     attachments_no = len(attachment_indices)
-    logging.debug('Found %i attachments' % attachments_no)
+    logging.info('Found %i attachments' % attachments_no)
 
-    # IMPORTANT - DISABLING TIMESTAMP FOR BUGFIXES
-    # db.set_timestamp()
+    db = DBHelper()
+    db.set_timestamp()
+    db.close()
 
     # Resetting return variable
     new_insert_indices = []
+    db = DBHelper()
     for i in range(0, attachments_no):
 
         logging.info("Inserting submission message with subject: %s" % mess.subject)
@@ -77,7 +79,7 @@ def store_submission(mess):
 
         # The database row of each insert (can be multiple if multiple eligible attachments is saved in a list
         new_insert_indices.append(insert_index)
-
+    db.close()
     return new_insert_indices
 
 
@@ -100,6 +102,7 @@ def get_all_new_messages(account):
     allfolders = account.inbox.get_folders()
     # allfolders.append(account.inbox)      # Breaks down in exchangelib 1.10
 
+    db = DBHelper()
     for folder in allfolders:
         logging.info("Looking in folder %s" % str(folder))
         for submission in folder.all():
@@ -114,6 +117,7 @@ def get_all_new_messages(account):
             except DuplicateMessageError as error:
                 logging.error(repr(error))
 
+    db.close()
     return all_new_rows
 
 
@@ -136,9 +140,12 @@ def count_all(account):
 
 # Reviews an xlsm file in the database, parses its contents, and commits the content to the database
 def analyze_submission(db_id):
+    db = DBHelper()
     tempfile = db.get_file_by_id(db_id)
+    db.close()
     parser = ExcelParser(tempfile)
 
+    db = DBHelper()
     db.insert_analysis(db_id, lead_office=parser.get_lead_office(),
                        project_margin=parser.get_margin(),
                        total_fee=parser.get_project_fee(),
@@ -147,11 +154,13 @@ def analyze_submission(db_id):
                        blended_hourly_rate=parser.get_blended_hourly_rate(),
                        pricing_method=parser.assess_pricing_method(db_id),
                        tool_version=parser.determine_version())
-
+    db.close()
 
 # Fallback method to rerun analysis on all submissions stored in database, in case of failure half way
 def reanalyze_all():
+    db = DBHelper()
     db_lines = db.countlines()  # type: int
+    db.close()
     for index in range(1, db_lines + 1):
         analyze_submission(index)
 
@@ -200,16 +209,17 @@ def main():
 
     # Finally, reporting back all sucessful and closing database connection
     logging.info("All messages interpreted.")
-    print("All done, closing connection to database")
-    logging.info("Closing database")
-    db.close()
+    # print("All done, closing connection to database")
+    # logging.info("Closing database")
+    # db.close()
 
 if __name__ == '__main__':
+    db = DBHelper()
     user_select = input("Menu:\n "
                         "[1] Update all submissions \n "
                         "[2] Rerun quote analysis on database \n "
                         "[3] Export to csv file \n "
-                        "[4] Flush old fetchones \n"
+                        "[4] Get filename of first entry in GPPT_Submissions \n"
                         ">>")
     if user_select == "1":
         main()
@@ -220,8 +230,11 @@ if __name__ == '__main__':
         logging.info("Initializing export")
         db.export_db(format="csv")
     elif user_select == "4":
-        result = db.cur.fetchone()
-        print(result)
+        stmt = "SELECT (Attachment_Binary) FROM GPPT_Submissions WHERE (ID=%s)"
+        db.cur.execute(stmt, (1,))
+        r2 = db.cur.fetchone()[0][:100]
+        db.close()
+        print(r2)
         print("Bye")
     else:
         print(user_select)

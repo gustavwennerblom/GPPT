@@ -1,6 +1,7 @@
 import config
 # import sqlite3
 import mysql.connector
+import pymysql
 import logging
 from datetime import datetime
 from unicodewriter import UnicodeWriter
@@ -154,9 +155,9 @@ class DBHelper:
         logging.info("Retrieving file with database index %s" % i)
 
         # Override to get it working
-        last_index = self.cur.lastrowid
-
-        row = self.cur.execute("SELECT (Attachment_Binary) FROM GPPT_Submissions WHERE (ID = %s)", (str(i),)).fetchone()
+        #last_index = self.cur.lastrowid
+        self.cur.execute("SELECT (Attachment_Binary) FROM GPPT_Submissions WHERE (ID=%s)", (i,))
+        row = self.cur.fetchone()
         #row = self.cur.execute("SELECT * FROM GPPT_Submissions WHERE (ID=%s)", (i,)).fetchall()
         tempfile_name = "Written_From_DB.xlsm"
         tempfile_contents = row[0]
@@ -181,14 +182,25 @@ class DBHelper:
         self.dbname = dbname
         user = DBcreds.user
         password = DBcreds.password
-        self.conn = mysql.connector.connect(user=user,
-                                            password=password,
-                                            host='127.0.0.1',
-                                            database=self.dbname)
-        # self.conn = sqlite3.Connection("submissions.db")
-        # buffering kwarg - see https://stackoverflow.com/questions/29772337/python-mysql-connector-unread-result-found-when-using-fetchone
+
+        ### pymsql connection string
+        self.conn = pymysql.connect(user=user,
+                                    password=password,
+                                    host='127.0.0.1',
+                                    database=self.dbname)
         self.cur = self.conn.cursor()
 
+        ### mysql.connector connection string
+        # self.conn = mysql.connector.connect(user=user,
+        #                                     password=password,
+        #                                     host='127.0.0.1',
+        #                                     database=self.dbname)
+
+        # buffering kwarg - see https://stackoverflow.com/questions/29772337/python-mysql-connector-unread-result-found-when-using-fetchone
+        # self.cur = self.conn.cursor(buffered=True)
+
+        ### SQLite connection string
+        # self.conn = sqlite3.Connection("submissions.db")
 
 class DuplicateFileError(Exception):
     pass

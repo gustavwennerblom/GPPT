@@ -35,7 +35,7 @@ class MyMessage:
         import os
         cwd=os.getcwd()
         filenames=os.listdir(cwd+u"/calcs")
-        myfiles=[filenames[1], filenames[3]]
+        myfiles=[filenames[0]]
         for myfile in myfiles:
             try:
                 os.chdir("./calcs")

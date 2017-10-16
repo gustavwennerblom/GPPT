@@ -45,6 +45,6 @@ cur.execute('''CREATE TABLE IF NOT EXISTS Test_Last_Update (
 t = datetime.now()
 timestamp = datetime.strftime(t, "%Y-%m-%d-%H-%M-%S")
 
-cur.execute("INSERT INTO Test_Last_Update (Updated) VALUES (%s);", (timestamp,)).fetchone()
+cur.execute("INSERT INTO Test_Last_Update (Updated) VALUES (%s);", (timestamp,))
 conn.commit()
 
