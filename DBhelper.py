@@ -1,9 +1,10 @@
-import config
 import logging
+import config
 from datetime import datetime
 from unicodewriter import UnicodeWriter
 import credentials.DBcreds as DBcreds
 import sys
+from mysql.connector import DatabaseError
 
 class DBHelper:
 
@@ -38,11 +39,14 @@ class DBHelper:
 
     def duplicate_file(self, filename):
         sql = "SELECT Id FROM GPPT_Submissions WHERE Filename = %s"
-        duplicate_list = self.cur.execute(sql, (filename,))
-        if duplicate_list.fetchone():
-            return True
-        else:
-            return False
+        try:
+            duplicate_list = self.cur.execute(sql, (filename,))
+            if duplicate_list:
+                return True
+            else:
+                return False
+        except DatabaseError as err:
+            logging.error("Error on duplicate check for file {} ".format(filename) + repr(err))
 
     def duplicatemessage(self, message):
         sql = "SELECT Id FROM GPPT_Submissions WHERE Message_Id = %s"
@@ -59,7 +63,7 @@ class DBHelper:
         if self.duplicate_file(filename) and config.enforce_unique_files:
             logging.warning('Attempt to insert file %s in database disallowed. Set enforce_unique_files in '
                             'config-py to "False" to allow' % filename)
-            raise DuplicateFileError("File is already in database")
+            raise DuplicateFileWarning("File is already in database")
 
         self.cur.execute(
             '''INSERT INTO GPPT_Submissions
@@ -192,15 +196,17 @@ class DBHelper:
                                             database=database)
         # buffering kwarg - see https://stackoverflow.com/questions/29772337/python-mysql-connector-unread-result-found-when-using-fetchone
         self.cur = self.conn.cursor(buffered=True)
+        logging.info('Connection created to database "{0}" on {1}'.format(database,
+                                                                          host))
 
         ### SQLite connection string
         # import sqlite3
         # self.conn = sqlite3.Connection("submissions.db")
         # self.cur = self.conn.cursor()
 
-class DuplicateFileError(Exception):
+class DuplicateFileWarning(Exception):
     pass
 
 
-class DuplicateMessageError(Exception):
+class DuplicateMessageWarning(Exception):
     pass

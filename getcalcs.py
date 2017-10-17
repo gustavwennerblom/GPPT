@@ -2,12 +2,12 @@ import json
 import config
 import logging
 
-from DBhelper import DBHelper, DuplicateFileError, DuplicateMessageError
+from DBhelper import DBHelper, DuplicateFileWarning, DuplicateMessageWarning
 from exchangelib import Account, Credentials, DELEGATE, Configuration
 from excel_parser import ExcelParser, ExcelParsingError
 
 # Initialize database manager script
-db = DBHelper()
+# db = DBHelper()   # Migrating away from one "db" class for all operations to avoid timeouts
 
 # Initialize log
 FORMAT = '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
@@ -41,12 +41,13 @@ def check_attachments(attachments):
 
 # Stores a submission received as an email message into the database. Returns the database index of that submission
 def store_submission(mess):
+    db = DBHelper()
     # Checking if this specific Message has been store in the database already. Return 'None' if duplicate.
     if db.duplicatemessage(mess) and config.enforce_unique_messages:
         logging.warning('Attempt to insert message with EWS ID %s disallowed by configuration. '
                         'Set enforce_unique_files in config.py to "False" to allow.' % mess.item_id)
         try:
-            raise DuplicateMessageError('Message (subject "%s") with this EWS message ID is already '
+            raise DuplicateMessageWarning('Message (subject "%s") with this EWS message ID is already '
                                         'in database' % mess.subject)
         except UnicodeEncodeError as error:
             logging.error("Message with this EWS message ID (and cumbersome Unicode title) "
@@ -58,12 +59,14 @@ def store_submission(mess):
     logging.info('Found %i attachments' % attachments_no)
 
     db.set_timestamp()
-
+    db.close()
     # Resetting return variable
     new_insert_indices = []
     for i in range(0, attachments_no):
 
         logging.info("Inserting submission message with subject: %s" % mess.subject)
+        # creating new DBHelper to avoid timeouts
+        db = DBHelper()
         # db.insert_message returns the row id of the latest insert
         insert_index = db.insert_message(mess.attachments[attachment_indices[i]].name,
                                          mess.sender.email_address,
@@ -75,6 +78,7 @@ def store_submission(mess):
 
         # The database row of each insert (can be multiple if multiple eligible attachments is saved in a list
         new_insert_indices.append(insert_index)
+        db.close()
     return new_insert_indices
 
 
@@ -99,24 +103,25 @@ def get_all_new_messages(account):
 
     for folder in allfolders:
         logging.info("Looking in folder %s" % str(folder))
+
+        # # Selection set for only looking in specific folders
+        # if str(folder) in ["Messages (Americas)", "Messages (APAC)"]:
+        #     logging.warning("Folder {0} skipped due to bugfix".format(folder))
+        #     continue
+
         number_of_emails = folder.all().count()
         logging.info("Found {0} messages in folder {1}".format(number_of_emails, folder))
-        emails_remaining = number_of_emails
-        while emails_remaining > 0:
-            amount_to_fetch = min(emails_remaining, 10)
-            logging.info("Getting {0} new emails, {1} remaining".format(amount_to_fetch, emails_remaining))
-            for submission in folder.all().order_by('-datetime_received')[:amount_to_fetch]:
-                try:
-                    logging.info('Accessing submission with subject "%s"' % submission.subject)
-                    db_indices = store_submission(submission)
-                    # Unless store_submission has returned None, save row id in list to analyze
-                    if isinstance(db_indices, list):
-                        all_new_rows += db_indices
-                except DuplicateFileError as error:
-                    logging.error(repr(error))
-                except DuplicateMessageError as error:
-                    logging.error(repr(error))
-            emails_remaining -= amount_to_fetch
+        for submission in folder.all().iterator():
+            try:
+                logging.info('Accessing submission with subject "%s"' % submission.subject)
+                db_indices = store_submission(submission)
+                # Unless store_submission has returned None, save row id in list to analyze
+                if isinstance(db_indices, list):
+                    all_new_rows += db_indices
+            except DuplicateFileWarning as error:
+                logging.warning(repr(error))
+            except DuplicateMessageWarning as error:
+                logging.warning(repr(error))
     return all_new_rows
 
 
@@ -139,6 +144,7 @@ def count_all(account):
 
 # Reviews an xlsm file in the database, parses its contents, and commits the content to the database
 def analyze_submission(db_id):
+    db = DBHelper()
     tempfile = db.get_file_by_id(db_id)
     parser = ExcelParser(tempfile)
 
@@ -151,16 +157,19 @@ def analyze_submission(db_id):
                        pricing_method=parser.assess_pricing_method(db_id),
                        tool_version=parser.determine_version())
 
+    db.close()
+
 
 # Fallback method to rerun analysis on all submissions stored in database, in case of failure half way
 def reanalyze_all():
+    db = DBHelper()
     db_lines = db.countlines()  # type: int
     for index in range(1, db_lines + 1):
         try:
             analyze_submission(index)
         except TypeError:
             logging.warning("analyze_submission failed on db index {0}. Possibly skip in index at write?".format(index))
-
+    db.close()
 
 
 def main():
@@ -192,9 +201,9 @@ def main():
 
         try:
             all_new_rows = store_submission(testmail)
-        except DuplicateFileError as error:
+        except DuplicateFileWarning as error:
             logging.error(repr(error))
-        except DuplicateMessageError as error:
+        except DuplicateMessageWarning as error:
             logging.error(repr(error))
 
     else:
@@ -213,8 +222,6 @@ def main():
 
     # Finally, reporting back all sucessful and closing database connection
     logging.info("All messages interpreted.")
-    logging.info("Closing database")
-    db.close()
 
 if __name__ == '__main__':
     user_select = input("Menu:\n "
@@ -228,16 +235,17 @@ if __name__ == '__main__':
     elif user_select == "2":
         logging.info("Initializing database re-analysis")
         reanalyze_all()
-        db.close()
     elif user_select == "3":
         logging.info("Initializing export")
-        db.export_db(format="csv")
-        db.close()
+        db_main = DBHelper()
+        db_main.export_db(format="csv")
+        db_main.close()
     elif user_select == "4":
+        db_main = DBHelper()
         stmt = "SELECT (Filename) FROM gppt_submissions WHERE (ID=%s)"
-        db.cur.execute(stmt, (2,))
-        r2 = db.cur.fetchone()[0]
-        db.close()
+        db_main.cur.execute(stmt, (2,))
+        r2 = db_main.cur.fetchone()[0]
+        db_main.close()
         print(r2)
         print("Bye")
     else:
