@@ -156,7 +156,11 @@ def analyze_submission(db_id):
 def reanalyze_all():
     db_lines = db.countlines()  # type: int
     for index in range(1, db_lines + 1):
-        analyze_submission(index)
+        try:
+            analyze_submission(index)
+        except TypeError:
+            logging.warning("analyze_submission failed on db index {0}. Possibly skip in index at write?".format(index))
+
 
 
 def main():
@@ -230,9 +234,9 @@ if __name__ == '__main__':
         db.export_db(format="csv")
         db.close()
     elif user_select == "4":
-        stmt = "SELECT (Attachment_Binary) FROM GPPT_Submissions WHERE (ID=%s)"
-        db.cur.execute(stmt, (1,))
-        r2 = db.cur.fetchone()[0][:100]
+        stmt = "SELECT (Filename) FROM gppt_submissions WHERE (ID=%s)"
+        db.cur.execute(stmt, (2,))
+        r2 = db.cur.fetchone()[0]
         db.close()
         print(r2)
         print("Bye")
