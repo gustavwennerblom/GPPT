@@ -98,7 +98,7 @@ def get_new_messages(folder_name, account):
 def get_all_new_messages(account):
     logging.info("Initializing message downloads")
     all_new_rows = []
-    allfolders = account.inbox.get_folders()
+    allfolders = account.inbox.children
     # allfolders.append(account.inbox)      # Breaks down in exchangelib 1.10
 
     for folder in allfolders:
@@ -111,7 +111,7 @@ def get_all_new_messages(account):
 
         number_of_emails = folder.all().count()
         logging.info("Found {0} messages in folder {1}".format(number_of_emails, folder))
-        for submission in folder.all().iterator():
+        for submission in folder.all():
             try:
                 logging.info('Accessing submission with subject "%s"' % submission.subject)
                 db_indices = store_submission(submission)
@@ -161,10 +161,10 @@ def analyze_submission(db_id):
 
 
 # Fallback method to rerun analysis on all submissions stored in database, in case of failure half way
-def reanalyze_all():
+def reanalyze_all(start_index=1):
     db = DBHelper()
     db_lines = db.countlines()  # type: int
-    for index in range(1, db_lines + 1):
+    for index in range(start_index, db_lines + 1):
         try:
             analyze_submission(index)
         except TypeError:
@@ -212,6 +212,7 @@ def main():
         # messages = get_new_messages("Americas", account)  # Early test of mailbox access
         # Triggers run on all exchange folders and stores messages in db
         all_new_rows = get_all_new_messages(account)
+        logging.info("{} new rows inserted in database. Proceeding to analysis".format(len(all_new_rows)))
 
     # Loop iterates through all new inserted binaries and adds the excel analysis to the db
     for submission_id in all_new_rows:

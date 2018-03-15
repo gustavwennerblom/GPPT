@@ -25,7 +25,12 @@ class ExcelParser:
 
         if sheetletter == "A":
             if version_number > 0.4:
-                return self.wb.get_sheet_by_name("A) Project pricing - consulting")
+                try:
+                    return self.wb.get_sheet_by_name("A) Project pricing - consulting")
+                    return self.wb.get_sheet_by_name("Project pricing - consulting")
+                except KeyError as err:
+                    logging.error("No pricing sheet found" + str(err))
+                    return err
             else:
                 return self.wb.get_sheet_by_name("Project pricing - consulting")
         # if sheetletter == "A":
@@ -54,7 +59,10 @@ class ExcelParser:
 
     # Returns lead office of the proposal
     def get_lead_office(self):
-        ws = self.get_sheet("A")
+        try:
+            ws = self.get_sheet("A")
+        except KeyError as err:
+            return "Unknown"
         return ws['C4'].value
 
     # Returns region
