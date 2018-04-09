@@ -2,7 +2,7 @@ import json
 import config
 import logging
 
-from DBhelper import DBHelper, DuplicateFileWarning, DuplicateMessageWarning
+from DBhelper_MSSQL import DBHelper, DuplicateFileWarning, DuplicateMessageWarning
 from exchangelib import Account, Credentials, DELEGATE, Configuration
 from excel_parser import ExcelParser, ExcelParsingError
 
@@ -20,7 +20,7 @@ def count_submissions_by_region(folder_name, account):
     return f.total_count
 
 
-# Method to check a list of attachments and return the indexes of those eiligible for analysis and storage
+# Method to check a list of attachments and return the indexes of those eligible for analysis and storage
 def check_attachments(attachments):
     # assert (attachments, exchangelib.folders.Attachment)
     rbound = len(attachments)
@@ -88,7 +88,6 @@ def get_new_messages(folder_name, account):
 
     new_submissions = []
     for submission in target_folder.all():
-
         new_submissions.append(submission)
 
     return new_submissions
@@ -228,8 +227,7 @@ def main():
 if __name__ == '__main__':
     user_select = input("Menu:\n "
                         "[1] Update all submissions \n "
-                        "[2] Rerun quote analysis on database \n "
-                        "[3] Export to csv file \n "
+                        "[2] Rerun quote analysis on database \n "        
                         "[4] Get filename of first entry in GPPT_Submissions \n"
                         ">>")
     if user_select == "1":
@@ -237,19 +235,14 @@ if __name__ == '__main__':
     elif user_select == "2":
         logging.info("Initializing database re-analysis")
         reanalyze_all()
-    elif user_select == "3":
-        logging.info("Initializing export")
-        db_main = DBHelper()
-        db_main.export_db(format="csv")
-        db_main.close()
     elif user_select == "4":
-        db_main = DBHelper(version='azure-mssql')
+        db_main = DBHelper()
         # stmt = "SELECT (Filename) FROM gppt_submissions WHERE (ID=%s)"
         # for row in db_main.cur.tables():
         #     print (row)
+        # stmt = "SELECT (Filename) FROM submissions.gppt_submissions WHERE (ID=?)"
         stmt = "SELECT (Filename) FROM submissions.gppt_submissions WHERE (ID=?)"
-        stmt = "SELECT Filename FROM submissions.gppt_submissions WHERE ID=1"
-        db_main.cur.execute(stmt)
+        db_main.cur.execute(stmt, (1,))
         r2 = db_main.cur.fetchone()
         db_main.close()
         print(r2)
