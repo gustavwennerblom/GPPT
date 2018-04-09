@@ -20,26 +20,20 @@ class DBHelper:
             t = datetime.now()
             timestamp = datetime.strftime(t, "%Y-%m-%d-%H-%M-%S")
 
-        sql = "UPDATE Test_Last_Update SET Updated=%s WHERE ID=1"
+        sql = "UPDATE submissions.Test_Last_Update SET Updated=? WHERE ID=1"
         result = self.cur.execute(sql, (timestamp,))
         self.conn.commit()
         logging.info('Database timestamp for latest update set to %s' % timestamp)
 
-    # Tagged for removal - duplicate with set_timestamp
-    # def update_timestamp(self):
-    #     timestamp = datetime.strftime(datetime.now(), "%Y-%m-%d-%H-%M-%S")
-    #     sql = "UPDATE Test_Last_Update SET Updated=%s WHERE ID=1"
-    #     self.cur.execute(sql, (timestamp,))
-    #     self.conn.commit()
-
     def get_timestamp(self):
-        sql = "SELECT (Updated) FROM Test_Last_UPDATE WHERE ID=1"
-        return self.cur.execute(sql).fetchone()
+        sql = "SELECT (Updated) FROM submissions.Test_Last_UPDATE WHERE ID=1"
+        return self.cur.execute(sql).fetchone()[0]
 
     def duplicate_file(self, filename):
-        sql = "SELECT Id FROM GPPT_Submissions WHERE Filename = %s"
+        sql = "SELECT Id FROM submissions.GPPT_Submissions WHERE Filename = ?"
         try:
-            duplicate_list = self.cur.execute(sql, (filename,))
+            duplicate_list = self.cur.execute(sql, (filename,)).fetchall()
+            print("Variable duplicate_list is: {}".format(duplicate_list))
             if duplicate_list:
                 return True
             else:
@@ -48,7 +42,7 @@ class DBHelper:
             logging.error("Error on duplicate check for file {} ".format(filename) + repr(err))
 
     def duplicatemessage(self, message):
-        sql = "SELECT Id FROM GPPT_Submissions WHERE Message_Id = %s"
+        sql = "SELECT Id FROM submissions.GPPT_Submissions WHERE Message_Id = ?"
         self.cur.execute(sql, (message.item_id, ))
         if not self.cur.fetchone():
             return False
@@ -65,20 +59,19 @@ class DBHelper:
             raise DuplicateFileWarning("File is already in database")
 
         self.cur.execute(
-            '''INSERT INTO GPPT_Submissions
+            '''INSERT INTO submissions.GPPT_Submissions
             (Filename, Submitter, Region, Date, Message_Id, Attachment_Id, Attachment_Binary)
-            VALUES (%s, %s, %s, %s, %s, %s, %s)''',
+            VALUES (?, ?, ?, ?, ?, ?, ?)''',
             (filename, submitter, region, date, message_id, attachment_id, attachment))
+        i = self.cur.execute('SELECT SCOPE_IDENTITY()').fetchone()
         self.conn.commit()
-        logging.info("Message metadata and eligible attached files committed to database.")
-
-        i = self.cur.lastrowid
+        # logging.info("Message metadata and eligible attached files committed to database.")
         logging.info('Last message insert available on row %s in database' % str(i))
         return i
 
     def countlines(self):
         # type: () -> int
-        sql = "SELECT COUNT(*) FROM GPPT_Submissions"
+        sql = "SELECT COUNT(*) FROM submissions.GPPT_Submissions"
         self.cur.execute(sql)
         result = self.cur.fetchone()[0]
 
@@ -86,20 +79,20 @@ class DBHelper:
 
     def insert_analysis(self, db_id, **kwargs):
         self.cur.execute(
-            '''UPDATE GPPT_Submissions SET
-            Lead_Office=(%s),
-            P_Margin=(%s),
-            Tot_Fee=(%s),
-            Blended_Rate=(%s),
-            Tot_Hours=(%s),
-            Hours_Mgr=(%s),
-            Hours_SPM=(%s),
-            Hours_PM=(%s),
-            Hours_Cons=(%s),
-            Hours_Assoc=(%s),
-            Method=(%s),
-            Tool_Version=(%s)
-            WHERE ID = (%s)''',
+            '''UPDATE submissions.GPPT_Submissions SET
+            Lead_Office=(?),
+            P_Margin=(?),
+            Tot_Fee=(?),
+            Blended_Rate=(?),
+            Tot_Hours=(?),
+            Hours_Mgr=(?),
+            Hours_SPM=(?),
+            Hours_PM=(?),
+            Hours_Cons=(?),
+            Hours_Assoc=(?),
+            Method=(?),
+            Tool_Version=(?)
+            WHERE ID = (?)''',
             (kwargs["lead_office"], kwargs["project_margin"], kwargs["total_fee"], kwargs["blended_hourly_rate"],
              kwargs["total_hours"], kwargs["hours_by_role"]["Manager"], kwargs["hours_by_role"]["SPM"],
              kwargs["hours_by_role"]["PM"], kwargs["hours_by_role"]["Cons"], kwargs["hours_by_role"]["Assoc"],
@@ -117,7 +110,7 @@ class DBHelper:
     def get_file_by_id(self, i):
         logging.info("Retrieving file with database index %s" % i)
 
-        self.cur.execute("SELECT (Attachment_Binary) FROM GPPT_Submissions WHERE (ID=%s)", (i,))
+        self.cur.execute("SELECT (Attachment_Binary) FROM submissions.GPPT_Submissions WHERE (ID=?)", (i,))
         row = self.cur.fetchone()
         tempfile_name = "__Written_From_DB__.xlsm"
         tempfile_contents = row[0]
@@ -129,7 +122,7 @@ class DBHelper:
     # Returns list with all values from a specified column
     def get_column_values(self, col):
         result = []
-        sql = "SELECT %s FROM GPPT_Submissions;"
+        sql = "SELECT ? FROM submissions.GPPT_Submissions;"
         out = self.cur.execute(sql, (col,)).fetchall()
         for item in out:
             result.append(item)

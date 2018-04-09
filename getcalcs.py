@@ -3,7 +3,7 @@ import config
 import logging
 
 from DBhelper_MSSQL import DBHelper, DuplicateFileWarning, DuplicateMessageWarning
-from exchangelib import Account, Credentials, DELEGATE, Configuration
+from exchangelib import Account, Credentials, DELEGATE, Configuration, EWSDateTime
 from excel_parser import ExcelParser, ExcelParsingError
 
 # Initialize database manager script
@@ -31,7 +31,7 @@ def check_attachments(attachments):
                 indices.append(i)
                 logging.info('Attachment %s queued for storage in database' % attachments[i].name)
             else:
-                logging.warning(
+                logging.info(
                     'Attachment "%s" skipped, not in format for storage in database' % attachments[i].name
                 )
         except UnicodeEncodeError as error:
@@ -58,7 +58,7 @@ def store_submission(mess):
     attachments_no = len(attachment_indices)
     logging.info('Found %i attachments' % attachments_no)
 
-    db.set_timestamp()
+    # db.set_timestamp()
     db.close()
     # Resetting return variable
     new_insert_indices = []
@@ -83,11 +83,13 @@ def store_submission(mess):
 
 
 # Returns list of emails received since last update of the database
-def get_new_messages(folder_name, account):
+def get_new_messages(folder_name, account, from_datetime='2018-01-01-00-00-00'):
     target_folder = account.inbox.get_folder_by_name(folder_name)
-
+    tz = account.default_timezone
+    from_datetime_list = [int(x) for x in from_datetime.split('-')]
+    localized_from_datetime = tz.localize(EWSDateTime(*from_datetime_list))
     new_submissions = []
-    for submission in target_folder.all():
+    for submission in target_folder.filter(datetime_received__gt=localized_from_datetime):
         new_submissions.append(submission)
 
     return new_submissions
@@ -95,10 +97,16 @@ def get_new_messages(folder_name, account):
 
 # Looks through all messages in all folders in an account, finds new messages
 def get_all_new_messages(account):
+    db = DBHelper()
     logging.info("Initializing message downloads")
     all_new_rows = []
     allfolders = account.inbox.children
     # allfolders.append(account.inbox)      # Breaks down in exchangelib 1.10
+
+    last_update_timestamp = db.get_timestamp()
+    tz = account.default_timezone
+    from_datetime_list = [int(x) for x in last_update_timestamp.split('-')]
+    localized_from_datetime = tz.localize(EWSDateTime(*from_datetime_list))
 
     for folder in allfolders:
         logging.info("Looking in folder %s" % str(folder))
@@ -108,9 +116,9 @@ def get_all_new_messages(account):
         #     logging.warning("Folder {0} skipped due to bugfix".format(folder))
         #     continue
 
-        number_of_emails = folder.all().count()
-        logging.info("Found {0} messages in folder {1}".format(number_of_emails, folder))
-        for submission in folder.all():
+        number_of_emails = folder.filter(datetime_received__gt=localized_from_datetime).count()
+        logging.info("Found {0} new messages in folder {1}".format(number_of_emails, folder))
+        for submission in folder.filter(datetime_received__gt=localized_from_datetime):
             try:
                 logging.info('Accessing submission with subject "%s"' % submission.subject)
                 db_indices = store_submission(submission)
@@ -121,6 +129,8 @@ def get_all_new_messages(account):
                 logging.warning(repr(error))
             except DuplicateMessageWarning as error:
                 logging.warning(repr(error))
+
+    db.set_timestamp()
     return all_new_rows
 
 
@@ -155,12 +165,11 @@ def analyze_submission(db_id):
                        blended_hourly_rate=parser.get_blended_hourly_rate(),
                        pricing_method=parser.assess_pricing_method(db_id),
                        tool_version=parser.determine_version())
-
     db.close()
 
 
 # Fallback method to rerun analysis on all submissions stored in database, in case of failure half way
-def reanalyze_all(start_index=1):
+def reanalyze_all(start_index=49):
     db = DBHelper()
     db_lines = db.countlines()  # type: int
     for index in range(start_index, db_lines + 1):
@@ -186,7 +195,6 @@ def main():
     # Ignore if in debug mode when working with a spoof message
     if not config.debug:
         config_office365 = Configuration(server="outlook.office365.com", credentials=credentials)
-        # noinspection PyUnboundLocalVariable
         account = Account(primary_smtp_address="projectproposals@business-sweden.se", config=config_office365,
                           autodiscover=False, access_type=DELEGATE)
 
@@ -220,7 +228,7 @@ def main():
         except ExcelParsingError as error:
             logging.error(repr(error))
 
-    # Finally, reporting back all sucessful and closing database connection
+    # Finally, reporting back all successful and closing database connection
     logging.info("All messages interpreted.")
 
 
@@ -228,7 +236,8 @@ if __name__ == '__main__':
     user_select = input("Menu:\n "
                         "[1] Update all submissions \n "
                         "[2] Rerun quote analysis on database \n "        
-                        "[4] Get filename of first entry in GPPT_Submissions \n"
+                        "[4] Get filename of first entry in GPPT_Submissions \n "
+                        "[5] Get list of messages new since last database update \n "
                         ">>")
     if user_select == "1":
         main()
@@ -237,16 +246,28 @@ if __name__ == '__main__':
         reanalyze_all()
     elif user_select == "4":
         db_main = DBHelper()
-        # stmt = "SELECT (Filename) FROM gppt_submissions WHERE (ID=%s)"
-        # for row in db_main.cur.tables():
-        #     print (row)
-        # stmt = "SELECT (Filename) FROM submissions.gppt_submissions WHERE (ID=?)"
-        stmt = "SELECT (Filename) FROM submissions.gppt_submissions WHERE (ID=?)"
+        stmt = "SELECT (Filename) FROM submissions.GPPT_Submissions WHERE (ID=?)"
         db_main.cur.execute(stmt, (1,))
         r2 = db_main.cur.fetchone()
         db_main.close()
         print(r2)
         print("Bye")
+    elif user_select == '5':
+        with open("./credentials/CREDENTIALS.json") as j:
+            text = j.readline()
+            d = json.loads(text)
+        credentials = Credentials(username=d["UID"], password=d["PWD"])
+        logging.info("Accessing Exchange credentials")
+        config_office365 = Configuration(server="outlook.office365.com", credentials=credentials)
+        account = Account(primary_smtp_address="projectproposals@business-sweden.se", config=config_office365,
+                          autodiscover=False, access_type=DELEGATE)
+        db = DBHelper()
+        latest_database_update = db.get_timestamp()
+        print('Database latest updated ' + latest_database_update)
+        new_messages = get_new_messages("Americas", account, from_datetime=latest_database_update)
+        for message in new_messages:
+            print ("Subject: {} Sent: {}".format(message.subject, message.datetime_sent))
+        print("All done. Bye")
     else:
         print(user_select)
         print('Valid selections only "1" or "2" or "3". Please restart and try again')

@@ -13,6 +13,7 @@ class ExcelParser:
         # logging.info(version_string)
         version = version_string[-4:].strip()
         # logging.info("Found submission from tool with version %s" % version)
+        print("Version: {}".format(version))
         return version
 
     # Support method to get the various alternative core sheets
@@ -132,7 +133,11 @@ class ExcelParser:
             if cell.value == "SUBTOTAL":
                 total_hours_row = cell.row
 
-        return ws.cell(row=total_hours_row, column=total_hours_col).value
+        total_hours = ws.cell(row=total_hours_row, column=total_hours_col).value
+        if total_hours == '#REF!':
+            total_hours = 0
+
+        return total_hours
 
     # Attempts to figure out which pricing method was used by the submitter
     def assess_pricing_method(self, db_id):
