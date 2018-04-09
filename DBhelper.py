@@ -4,7 +4,8 @@ from datetime import datetime
 from unicodewriter import UnicodeWriter
 import credentials.DBcreds as DBcreds
 import sys
-from mysql.connector import DatabaseError
+
+
 
 class DBHelper:
 
@@ -173,36 +174,44 @@ class DBHelper:
     # __init__ starts up a connection to a given database
     # Access credentials are taken from a "DBcreds.py" in a subdirectory "credentials"
     # DBcreds.py must include a variable "user" and one "password"
-    def __init__(self):
-        ## Parameters required if running MySQL
-        user = DBcreds.user
-        password = DBcreds.password
-        host = DBcreds.host
-        database = DBcreds.database
+    def __init__(self, version='azure-mysql'):
+        if version == 'azure-mysql':
+            from mysql.connector import DatabaseError
 
+            ## Parameters required if running MySQL
+            user = DBcreds.user
+            password = DBcreds.password
+            host = DBcreds.host
+            database = DBcreds.database
 
-        ### pymsql connection string
-        # self.conn = pymysql.connect(user=user,
-        #                             password=password,
-        #                             host=host,
-        #                             database=database)
-        # self.cur = self.conn.cursor()
+            ### mysql.connector connection string
+            import mysql.connector
+            self.conn = mysql.connector.connect(user=user,
+                                                password=password,
+                                                host=host,
+                                                database=database)
+            # buffering kwarg - see https://stackoverflow.com/questions/29772337/python-mysql-connector-unread-result-found-when-using-fetchone
+            self.cur = self.conn.cursor(buffered=True)
+            logging.info('Connection created to database "{0}" on {1}'.format(database, host))
 
-        ### mysql.connector connection string
-        import mysql.connector
-        self.conn = mysql.connector.connect(user=user,
-                                            password=password,
-                                            host=host,
-                                            database=database)
-        # buffering kwarg - see https://stackoverflow.com/questions/29772337/python-mysql-connector-unread-result-found-when-using-fetchone
-        self.cur = self.conn.cursor(buffered=True)
-        logging.info('Connection created to database "{0}" on {1}'.format(database,
-                                                                          host))
+        elif version == 'local-sqlite':
+            ### SQLite connection string
+            import sqlite3
+            self.conn = sqlite3.Connection("submissions.db")
+            self.cur = self.conn.cursor()
 
-        ### SQLite connection string
-        # import sqlite3
-        # self.conn = sqlite3.Connection("submissions.db")
-        # self.cur = self.conn.cursor()
+        elif version == 'azure-mssql':
+            import pyodbc
+            self.conn = pyodbc.connect('Driver={ODBC Driver 13 for SQL Server};'
+                                       'Server=tcp:phoenixdb01.database.windows.net,1433;'
+                                       'Database=gppt-submissions;'
+                                       'Uid=;'
+                                       'Pwd=;'
+                                       'Encrypt=yes;'
+                                       'TrustServerCertificate=no;'
+                                       'Connection Timeout=30;')
+            self.cur = self.conn.cursor()
+
 
 class DuplicateFileWarning(Exception):
     pass

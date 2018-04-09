@@ -224,6 +224,7 @@ def main():
     # Finally, reporting back all sucessful and closing database connection
     logging.info("All messages interpreted.")
 
+
 if __name__ == '__main__':
     user_select = input("Menu:\n "
                         "[1] Update all submissions \n "
@@ -242,10 +243,14 @@ if __name__ == '__main__':
         db_main.export_db(format="csv")
         db_main.close()
     elif user_select == "4":
-        db_main = DBHelper()
-        stmt = "SELECT (Filename) FROM gppt_submissions WHERE (ID=%s)"
-        db_main.cur.execute(stmt, (2,))
-        r2 = db_main.cur.fetchone()[0]
+        db_main = DBHelper(version='azure-mssql')
+        # stmt = "SELECT (Filename) FROM gppt_submissions WHERE (ID=%s)"
+        # for row in db_main.cur.tables():
+        #     print (row)
+        stmt = "SELECT (Filename) FROM submissions.gppt_submissions WHERE (ID=?)"
+        stmt = "SELECT Filename FROM submissions.gppt_submissions WHERE ID=1"
+        db_main.cur.execute(stmt)
+        r2 = db_main.cur.fetchone()
         db_main.close()
         print(r2)
         print("Bye")
