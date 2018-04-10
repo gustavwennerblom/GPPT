@@ -238,6 +238,7 @@ if __name__ == '__main__':
                         "[2] Rerun quote analysis on database \n "        
                         "[4] Get filename of first entry in GPPT_Submissions \n "
                         "[5] Get list of messages new since last database update \n "
+                        "[0] Devtest \n "
                         ">>")
     if user_select == "1":
         main()
@@ -268,6 +269,10 @@ if __name__ == '__main__':
         for message in new_messages:
             print ("Subject: {} Sent: {}".format(message.subject, message.datetime_sent))
         print("All done. Bye")
+    elif user_select == '0':
+        db = DBHelper()
+        s = db.submissions
+        x = 1
     else:
         print(user_select)
         print('Valid selections only "1" or "2" or "3". Please restart and try again')

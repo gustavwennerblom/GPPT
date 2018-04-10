@@ -2,7 +2,8 @@ import logging
 import config
 from datetime import datetime
 import credentials.DBcreds as DBcreds
-import sys
+from sqlalchemy import create_engine, Table, String, Integer, MetaData
+from sqlalchemy.ext.declarative import declarative_base
 
 
 class DBHelper:
@@ -174,6 +175,16 @@ class DBHelper:
                                                          DBcreds.user,
                                                          DBcreds.password))
             self.cur = self.conn.cursor()
+
+            self.engine = create_engine('mssql+pyodbc://{0}:{1}@{2}/{3}?driver=ODBC+Driver+13+for+SQL+Server'.format(DBcreds.user, DBcreds.password, DBcreds.host, DBcreds.database))
+            Base = declarative_base()
+            meta = MetaData()
+            meta.bind = self.engine
+            meta.reflect()
+            self.submissions = Table('submissions.gppt_submissions', meta, autoload=True)
+            self.last_update = Table('submissions.test_last_update', meta, autoload=True)
+
+
 
         else:
             print("Error configuring database connection")

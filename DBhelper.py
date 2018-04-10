@@ -3,14 +3,12 @@ import config
 from datetime import datetime
 from unicodewriter import UnicodeWriter
 import credentials.DBcreds as DBcreds
-import sys
 
 
 class DBHelper:
 
     # Checks if a certain filename is already in the database
     # Valid since all files have a timestamp in the filename
-
     def set_timestamp(self, *args):
         if len(args) > 2:
             logging.error('set_timestamp takes maximum one argument, %i given' % len(args))
