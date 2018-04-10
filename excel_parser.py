@@ -13,7 +13,6 @@ class ExcelParser:
         # logging.info(version_string)
         version = version_string[-4:].strip()
         # logging.info("Found submission from tool with version %s" % version)
-        print("Version: {}".format(version))
         return version
 
     # Support method to get the various alternative core sheets
@@ -31,7 +30,7 @@ class ExcelParser:
                     return self.wb.get_sheet_by_name("Project pricing - consulting")
                 except KeyError as err:
                     logging.error("No pricing sheet found" + str(err))
-                    return err
+                    repr(err)
             else:
                 return self.wb.get_sheet_by_name("Project pricing - consulting")
         # if sheetletter == "A":
@@ -64,7 +63,11 @@ class ExcelParser:
             ws = self.get_sheet("A")
         except KeyError as err:
             return "Unknown"
-        return ws['C4'].value
+
+        try:
+            return ws['C4'].value
+        except TypeError:
+            return "Unknown"
 
     # Returns region
     def get_region(self):

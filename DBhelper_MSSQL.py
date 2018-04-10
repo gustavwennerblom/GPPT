@@ -57,7 +57,6 @@ class DBHelper:
         if self.duplicate_file(filename) and config.enforce_unique_files:
             logging.warning('Attempt to insert file %s in database disallowed. Set enforce_unique_files in '
                             'config-py to "False" to allow' % filename)
-            raise DuplicateFileWarning("File is already in database")
 
         self.cur.execute(
             '''INSERT INTO submissions.GPPT_Submissions

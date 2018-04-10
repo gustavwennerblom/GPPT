@@ -17,8 +17,9 @@ class MyMessage:
         t = timestring.split("-")
         return ews.EWSDateTime(int(t[0]), int(t[1]), int(t[2]), int(t[3]), int(t[4]))
 
-
     def __init__(self):
+        # Get a logger
+        log = logging.getLogger(__name__)
 
         # timestamps the message with current date and time
         time = self.convert_to_EWStime(datetime.now())
@@ -34,24 +35,26 @@ class MyMessage:
             body="Test message",
             datetime_sent = time
         )
-        logging.info('Test message created')
+        log.info('Test message created')
         import os
-        cwd=os.getcwd()
-        filenames=os.listdir(cwd+u"/calcs")
-        myfiles=[filenames[2], filenames[1]]
+        cwd = os.path.dirname(os.path.realpath(__file__))
+        # filenames = os.listdir(cwd+u"/calcs")
+        dummy = os.path.join(cwd, 'calcs', 'Dummy.txt')
+        actual = os.path.join(cwd, 'calcs', 'test.xlsx')
+        myfiles = [actual]
         for myfile in myfiles:
             try:
-                os.chdir("./calcs")
-                logging.info("Accessing: %s" % myfile)
+                # os.chdir("./calcs")
+                log.info("Accessing: %s" % myfile)
                 f = open(myfile, mode='rb')
                 file_contents = f.read()
-                suffix = random.randint(0,99999)
+                # suffix = random.randint(0,99999)
                 att = FileAttachment(name=myfile, content=file_contents, attachment_id=AttachmentId())
                 self.m.attach(att)
                 f.close()
                 os.chdir("..")
             except IOError:
-                logging.error("Error opening file %s. Exiting." % myfile)
+                log.error("Error opening file %s. Exiting." % myfile)
                 import sys
                 sys.exit(0)
 
