@@ -31,13 +31,13 @@ def check_attachments(attachments):
         try:
             if attachments[i].name[-4:] == "xlsm":
                 indices.append(i)
-                logging.info('Attachment %s queued for storage in database' % attachments[i].name)
+                log.info('Attachment %s queued for storage in database' % attachments[i].name)
             else:
-                logging.info(
+                log.info(
                     'Attachment "%s" skipped, not in format for storage in database' % attachments[i].name
                 )
         except UnicodeEncodeError as error:
-            logging.error("Error caught in method 'check_attachments': " + repr(error))
+            log.error("Error caught in method 'check_attachments': " + repr(error))
     return indices
 
 
@@ -46,25 +46,25 @@ def store_submission(mess):
     # db = DBHelper()
     # Checking if this specific Message has been store in the database already. Return 'None' if duplicate.
     if db.duplicatemessage(mess) and config.enforce_unique_messages:
-        logging.warning('Attempt to insert message with EWS ID %s disallowed by configuration. '
+        log.warning('Attempt to insert message with EWS ID %s disallowed by configuration. '
                         'Set enforce_unique_files in config.py to "False" to allow.' % mess.item_id)
         try:
             raise DuplicateMessageWarning('Message (subject "%s") with this EWS message ID is already '
                                         'in database' % mess.subject)
         except UnicodeEncodeError as error:
-            logging.error("Message with this EWS message ID (and cumbersome Unicode title) "
+            log.error("Message with this EWS message ID (and cumbersome Unicode title) "
                           "already in database " + repr(error))
 
     # Check for eligible attachments and stores references to those in the attachment list
     attachment_indices = check_attachments(mess.attachments)
     attachments_no = len(attachment_indices)
-    logging.info('Found %i attachments' % attachments_no)
+    log.info('Found %i attachments' % attachments_no)
 
     # db.close()
     # Resetting return variable
     new_insert_indices = []
     for i in range(0, attachments_no):
-        logging.info("Inserting submission message with subject: %s" % mess.subject)
+        log.info("Inserting submission message with subject: %s" % mess.subject)
         # creating new DBHelper to avoid timeouts
         # db = DBHelper()
         # db.insert_index returns the row id of the latest insert
@@ -98,7 +98,7 @@ def get_new_messages(folder_name, account, from_datetime='2018-01-01-00-00-00'):
 # Looks through all messages in all folders in an account, finds new messages
 def fetch_all_new_messages(account):
     # db = DBHelper()
-    logging.info("Initializing message downloads")
+    log.info("Initializing message downloads")
     all_new_rows = []
     inbox = account.inbox
     # allfolders = account.inbox.children
@@ -111,21 +111,21 @@ def fetch_all_new_messages(account):
     localized_from_datetime = tz.localize(EWSDateTime(*from_datetime_list))
 
     for folder in allfolders:
-        logging.info("Looking in folder %s" % str(folder))
+        log.info("Looking in folder %s" % str(folder))
 
         number_of_emails = folder.filter(datetime_received__gt=localized_from_datetime).count()
-        logging.info("Found {0} new messages in folder {1}".format(number_of_emails, folder))
+        log.info("Found {0} new messages in folder {1}".format(number_of_emails, folder))
         for submission in folder.filter(datetime_received__gt=localized_from_datetime):
             try:
-                logging.info('Accessing submission with subject "%s"' % submission.subject)
+                log.info('Accessing submission with subject "%s"' % submission.subject)
                 db_indices = store_submission(submission)
                 # Unless store_submission has returned None, save row id in list to analyze
                 if isinstance(db_indices, list):
                     all_new_rows += db_indices
             except DuplicateFileWarning as error:
-                logging.warning(repr(error))
+                log.warning(repr(error))
             except DuplicateMessageWarning as error:
-                logging.warning(repr(error))
+                log.warning(repr(error))
 
     db.set_timestamp()
     return all_new_rows
@@ -177,7 +177,7 @@ def reanalyze_all():
         try:
             analyze_submission(index)
         except NoResultFound:
-            logging.warning("analyze_submission failed on db index {0}. Possibly skip in index at write?".format(index))
+            log.warning("analyze_submission failed on db index {0}. Possibly skip in index at write?".format(index))
     #db.close()
 
 
@@ -187,27 +187,27 @@ def main():
         text = j.readline()
         d = json.loads(text)
     credentials = Credentials(username=d["UID"], password=d["PWD"])
-    logging.info("Accessing Exchange credentials")
+    log.info("Accessing Exchange credentials")
 
     # Referencing Exchange account to fetch submissions from the projectproposal mailbox
     config_office365 = Configuration(server="outlook.office365.com", credentials=credentials)
     account = Account(primary_smtp_address="projectproposals@business-sweden.se", config=config_office365,
                       autodiscover=False, access_type=DELEGATE)
-    logging.info("Entering live mode with connection to Exchange server")
+    log.info("Entering live mode with connection to Exchange server")
 
     # Triggers run on all exchange folders and stores messages in db
     all_new_rows = fetch_all_new_messages(account)
-    logging.info("{} new rows inserted in database. Proceeding to analysis".format(len(all_new_rows)))
+    log.info("{} new rows inserted in database. Proceeding to analysis".format(len(all_new_rows)))
 
     # Loop iterates through all new inserted binaries and adds the excel analysis to the db
     for submission_id in all_new_rows:
         try:
             analyze_submission(submission_id)
         except ExcelParsingError as error:
-            logging.error(repr(error))
+            log.error(repr(error))
 
     # Finally, reporting back all successful and closing database connection
-    logging.info("All messages interpreted.")
+    log.info("All messages interpreted.")
 
 def run_with_start_menu():
     user_select = input("Menu:\n "
@@ -220,7 +220,7 @@ def run_with_start_menu():
     if user_select == "1":
         main()
     elif user_select == "2":
-        logging.info("Initializing database re-analysis")
+        log.info("Initializing database re-analysis")
         reanalyze_all()
     elif user_select == "3":
         timestamp = '2018-03-01-00-00-00'
@@ -230,7 +230,7 @@ def run_with_start_menu():
             text = j.readline()
             d = json.loads(text)
         credentials = Credentials(username=d["UID"], password=d["PWD"])
-        logging.info("Accessing Exchange credentials")
+        log.info("Accessing Exchange credentials")
         config_office365 = Configuration(server="outlook.office365.com", credentials=credentials)
         account = Account(primary_smtp_address="projectproposals@business-sweden.se", config=config_office365,
                           autodiscover=False, access_type=DELEGATE)
