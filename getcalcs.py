@@ -16,18 +16,20 @@ FORMAT = '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
 logging.basicConfig(filename="getcalcslog.log", format=FORMAT, level=config.loglevel)
 log = logging.getLogger(__name__)
 
+# Set severity level of exchangelibs logger
+logging.getLogger('exchangelib').setLevel(logging.WARNING)
+
 # Counts number of submissions in a given folder
 def count_submissions_by_region(folder_name, account):
     f = account.inbox.get_folder_by_name(folder_name)
     return f.total_count
 
 
-# Method to check a list of attachments and return the indexes of those eligible for analysis and storage
+# Checks a list of attachments and returns the indices of those eligible for analysis and storage
 def check_attachments(attachments):
-    # assert (attachments, exchangelib.folders.Attachment)
-    rbound = len(attachments)
+    r_bound = len(attachments)
     indices = []
-    for i in range(0, rbound):
+    for i in range(0, r_bound):
         try:
             if attachments[i].name[-4:] == "xlsm":
                 indices.append(i)
@@ -43,11 +45,10 @@ def check_attachments(attachments):
 
 # Stores a submission received as an email message into the database. Returns the database index of that submission
 def store_submission(mess):
-    # db = DBHelper()
-    # Checking if this specific Message has been store in the database already. Return 'None' if duplicate.
+    # Check if this specific Message has been store in the database already. Return 'None' if duplicate.
     if db.duplicatemessage(mess) and config.enforce_unique_messages:
         log.warning('Attempt to insert message with EWS ID %s disallowed by configuration. '
-                        'Set enforce_unique_files in config.py to "False" to allow.' % mess.item_id)
+                    'Set enforce_unique_files in config.py to "False" to allow.' % mess.item_id)
         try:
             raise DuplicateMessageWarning('Message (subject "%s") with this EWS message ID is already '
                                         'in database' % mess.subject)
