@@ -96,7 +96,7 @@ def get_new_messages(folder_name, account, from_datetime='2018-01-01-00-00-00'):
 
 
 # Looks through all messages in all folders in an account, finds new messages
-def get_all_new_messages(account):
+def fetch_all_new_messages(account):
     # db = DBHelper()
     logging.info("Initializing message downloads")
     all_new_rows = []
@@ -183,44 +183,21 @@ def reanalyze_all():
 
 def main():
     # Credentials for access to mailbox
-    # Ignore if in debug mode when working with a spoof message
-    credentials = None
-    if not config.debug:
-        with open("./credentials/CREDENTIALS.json") as j:
-            text = j.readline()
-            d = json.loads(text)
-        credentials = Credentials(username=d["UID"], password=d["PWD"])
-        logging.info("Accessing Exchange credentials")
+    with open("./credentials/CREDENTIALS.json") as j:
+        text = j.readline()
+        d = json.loads(text)
+    credentials = Credentials(username=d["UID"], password=d["PWD"])
+    logging.info("Accessing Exchange credentials")
 
     # Referencing Exchange account to fetch submissions from the projectproposal mailbox
-    # Ignore if in debug mode when working with a spoof message
-    if not config.debug:
-        config_office365 = Configuration(server="outlook.office365.com", credentials=credentials)
-        account = Account(primary_smtp_address="projectproposals@business-sweden.se", config=config_office365,
-                          autodiscover=False, access_type=DELEGATE)
+    config_office365 = Configuration(server="outlook.office365.com", credentials=credentials)
+    account = Account(primary_smtp_address="projectproposals@business-sweden.se", config=config_office365,
+                      autodiscover=False, access_type=DELEGATE)
+    logging.info("Entering live mode with connection to Exchange server")
 
-    if config.debug:
-        # USE BELOW TO INSERT A TEST MESSAGE IN THE DATABASE (CONFIGURE TEST MESSAGE IN MyMessage.py
-        logging.info('Triggering import of test Message')
-        from MyMessage import MyMessage
-        m = MyMessage()
-        testmail = m.get_message()
-        all_new_rows = []
-
-        try:
-            all_new_rows = store_submission(testmail)
-        except DuplicateFileWarning as error:
-            logging.error(repr(error))
-        except DuplicateMessageWarning as error:
-            logging.error(repr(error))
-
-    else:
-        logging.info("Entering live mode with connection to Exchange server")
-        # noinspection PyUnboundLocalVariable
-        # messages = get_new_messages("Americas", account)  # Early test of mailbox access
-        # Triggers run on all exchange folders and stores messages in db
-        all_new_rows = get_all_new_messages(account)
-        logging.info("{} new rows inserted in database. Proceeding to analysis".format(len(all_new_rows)))
+    # Triggers run on all exchange folders and stores messages in db
+    all_new_rows = fetch_all_new_messages(account)
+    logging.info("{} new rows inserted in database. Proceeding to analysis".format(len(all_new_rows)))
 
     # Loop iterates through all new inserted binaries and adds the excel analysis to the db
     for submission_id in all_new_rows:
@@ -269,6 +246,7 @@ def run_with_start_menu():
 
 
 def run_as_service(hours_between_runs):
+    print("Program started. Will update submissions every {} hours".format(hours_between_runs))
     while True:
         main()
         time.sleep(60*60*hours_between_runs)
@@ -280,6 +258,8 @@ if __name__ == '__main__':
     if len(sys.argv) == 2:
         if sys.argv[1] == '-menu':
             run_with_start_menu()
+        if sys.argv[1] == '-update'
+            main()
     else:
         print("Too many arguments")
         sys.exit(0)
