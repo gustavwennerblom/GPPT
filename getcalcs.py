@@ -1,5 +1,6 @@
 import config
 import logging, sys, os, json
+from logging.handlers import TimedRotatingFileHandler
 from datetime import datetime
 
 from DBhelper_sqla import DBHelper, DuplicateFileWarning, DuplicateMessageWarning
@@ -11,14 +12,20 @@ from mailer import LogMailer
 # Initialize database manager script. May need to be re-initialized on MySQL with aggressive timeout settings
 db = DBHelper()
 
-# Initialize log
-FORMAT = '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+# Initialize and configure log
 script_directory = os.path.dirname(os.path.realpath(__file__))
-logging.basicConfig(filename=os.path.join(script_directory, config.log_directory, config.main_log_filename),
-                    format=FORMAT,
-                    level=config.loglevel)
-log = logging.getLogger(__name__)
+log = logging.getLogger("getcalcs-main")
+log.setLevel(logging.INFO)
+ch = TimedRotatingFileHandler(filename=os.path.join(script_directory, config.log_directory, config.main_log_filename),
+                              when='d', interval=1, backupCount=7)
+# ch = logging.FileHandler(filename=os.path.join(script_directory, config.log_directory, config.main_log_filename))
+ch.setLevel(config.loglevel)
+ch.setFormatter(logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s'))
+log.addHandler(ch)
 log.info("Main log set up")
+log.debug("Debug message")
+log.info("Another log message")
+
 # Set severity level of exchangelibs logger
 logging.getLogger('exchangelib').setLevel(logging.WARNING)
 
@@ -181,7 +188,7 @@ def reanalyze_all():
 
 def main():
     # Credentials for access to mailbox
-    with open("./credentials/CREDENTIALS.json") as j:
+    with open(os.path.join(script_directory, 'credentials','CREDENTIALS.json')) as j:
         text = j.readline()
         d = json.loads(text)
     credentials = Credentials(username=d["UID"], password=d["PWD"])
@@ -233,7 +240,7 @@ def run_with_start_menu():
         timestamp = '2018-03-01-00-00-00'
         db.set_timestamp(timestamp)
     elif user_select == '5':
-        with open("./credentials/CREDENTIALS.json") as j:
+        with open(os.path.join(script_directory, 'credentials','CREDENTIALS.json')) as j:
             text = j.readline()
             d = json.loads(text)
         credentials = Credentials(username=d["UID"], password=d["PWD"])
