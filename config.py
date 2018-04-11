@@ -2,6 +2,9 @@
 import logging
 loglevel = logging.INFO
 LOG_FORMAT = '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+log_email_recipient = "gustav.wennerblom@gmail.com"
+log_directory = "logs"
+main_log_filename = "main.log"
 
 # Development vs production settings
 debug = False
