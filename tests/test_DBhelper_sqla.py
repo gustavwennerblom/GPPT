@@ -29,10 +29,13 @@ class TestDBHelper(unittest.TestCase):
         self.assertFalse(self.db.duplicate_file(filename=filename_not_in_db))
 
     def test_duplicate_message(self):
+        message = MyMessage().get_message()
         message_id_in_db = 'AAMkADBmYmFkNDU1LTE4MWEtNDdhNy05ODQxLTIwOGNlMWE0ZTJhYwBGAAAAAACuJ+e/J+cnSL+7PeCzc5F0BwBHzg3dfEohTpJuuhlo3bqdAAAAxZFtAAD1bJ37bup/Tb1FMrEI5mURAABwybayAAA='
         message_id_not_in_db = 'BLAJ'
-        self.assertTrue(self.db.duplicatemessage(message_id=message_id_in_db))
-        self.assertFalse(self.db.duplicatemessage(message_id=message_id_not_in_db))
+        message.item_id = message_id_in_db
+        self.assertTrue(self.db.duplicatemessage(message=message))
+        message.item_id = message_id_not_in_db
+        self.assertFalse(self.db.duplicatemessage(message=message))
 
     def test_line_count(self):
         line_count = self.db.countlines()
