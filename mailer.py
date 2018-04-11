@@ -5,7 +5,6 @@ from email.mime.text import MIMEText
 from email.mime.base import MIMEBase
 from email import encoders
 import config
-from credentials import loopia_creds
 
 
 class LogMailer(object):
