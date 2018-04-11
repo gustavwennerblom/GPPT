@@ -7,7 +7,7 @@ log_directory = "logs"
 main_log_filename = "main.log"
 
 # Development vs production settings
-debug = False
+# debug = False         # redundant setting
 test_database = True
 
 # General settings
