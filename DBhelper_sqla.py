@@ -2,11 +2,10 @@ import logging
 import config
 from datetime import datetime
 import credentials.DBcreds as DBcreds
-from sqlalchemy import create_engine, Table, String, Integer, MetaData
+from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
-from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.sql.expression import func
-from models import Base, LastUpdated
+from models import Base
 
 if config.test_database:
     from models import DevSubmission as Submission, DevLastUpdated as LastUpdated
@@ -161,8 +160,10 @@ class DBHelper:
             raise NotImplementedError
 
         elif config.database == 'MSSQL on Azure':
-            self.engine = create_engine('mssql+pyodbc://{0}:{1}@{2}/{3}?driver=ODBC+Driver+13+for+SQL+Server'.format(DBcreds.user, DBcreds.password, DBcreds.host, DBcreds.database))
+            self.engine = create_engine('mssql+pyodbc://{0}:{1}@{2}/{3}?driver=ODBC+Driver+13+for+SQL+Server'
+                                        .format(DBcreds.user, DBcreds.password, DBcreds.host, DBcreds.database))
             Base.metadata.create_all(self.engine)
+            # noinspection PyPep8Naming
             Session = sessionmaker(bind=self.engine)
             self.session = Session()
             log.info("Setup done for MSSQL on Azure, using SQLAlchemy ORM")
@@ -170,6 +171,7 @@ class DBHelper:
         else:
             print("Error configuring database connection")
             log.error("Fatal error configuring database")
+
 
 class DuplicateFileWarning(Exception):
     pass

@@ -1,6 +1,6 @@
 import logging
 from openpyxl import Workbook, load_workbook
-from openpyxl.utils import coordinate_from_string, column_index_from_string
+from openpyxl.utils import column_index_from_string
 
 
 # noinspection PyPep8Naming
@@ -21,7 +21,7 @@ class ExcelParser:
             version_number = float(self.determine_version())
         except ValueError as error:
             logging.error("Wrong format of tool version " + repr(error))
-            version_number  = 0.4
+            version_number = 0.4
 
         if sheetletter == "A":
             if version_number > 0.4:
@@ -61,7 +61,7 @@ class ExcelParser:
     def get_lead_office(self):
         try:
             ws = self.get_sheet("A")
-        except KeyError as err:
+        except KeyError:
             return "Unknown"
 
         try:
@@ -77,10 +77,10 @@ class ExcelParser:
     # Returns total project margin
     def get_margin(self):
         ws = self.get_sheet("A")
-        if float(self.determine_version())>0.4:
-            col=11
+        if float(self.determine_version()) > 0.4:
+            col = 11
         else:
-            col=13
+            col = 13
 
         for cell in ws['B']:
             if cell.value == "SUBTOTAL":
