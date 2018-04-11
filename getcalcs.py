@@ -8,8 +8,8 @@ from exchangelib import Account, Credentials, DELEGATE, Configuration, EWSDateTi
 from excel_parser import ExcelParser, ExcelParsingError
 from sqlalchemy.orm.exc import NoResultFound
 
-# Initialize database manager script
-db = DBHelper()   # Migrating away from one "db" class for all operations to avoid timeouts
+# Initialize database manager script. May need to be re-initialized on MySQL with aggressive timeout settings
+db = DBHelper()
 
 # Initialize log
 FORMAT = '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
@@ -61,13 +61,11 @@ def store_submission(mess):
     attachments_no = len(attachment_indices)
     log.info('Found %i attachments' % attachments_no)
 
-    # db.close()
     # Resetting return variable
     new_insert_indices = []
     for i in range(0, attachments_no):
         log.info("Inserting submission message with subject: %s" % mess.subject)
-        # creating new DBHelper to avoid timeouts
-        # db = DBHelper()
+
         # db.insert_index returns the row id of the latest insert
         insert_index = db.insert_message(mess.attachments[attachment_indices[i]].name,
                                          mess.sender.email_address,
@@ -79,7 +77,6 @@ def store_submission(mess):
 
         # The database row of each insert (can be multiple if multiple eligible attachments is saved in a list)
         new_insert_indices.append(insert_index)
-        # db.close()
     return new_insert_indices
 
 
@@ -98,11 +95,10 @@ def get_new_messages(folder_name, account, from_datetime='2018-01-01-00-00-00'):
 
 # Looks through all messages in all folders in an account, finds new messages
 def fetch_all_new_messages(account):
-    # db = DBHelper()
     log.info("Initializing message downloads")
     all_new_rows = []
     inbox = account.inbox
-    # allfolders = account.inbox.children
+    # allfolders = account.inbox.children   # No longer supported
     # allfolders.append(account.inbox)      # Breaks down in exchangelib 1.10
     allfolders = account.inbox.get_folders()
 
@@ -151,7 +147,6 @@ def count_all(account):
 
 # Reviews an xlsm file in the database, parses its contents, and commits the content to the database
 def analyze_submission(db_id):
-    # db = DBHelper()
     tempfile = db.get_file_by_id(db_id)
     parser = ExcelParser(tempfile)
 
@@ -166,12 +161,11 @@ def analyze_submission(db_id):
                            tool_version=parser.determine_version())
     except TypeError:
         log.error("File on index {} not possible to parse. Skipping".format(db_id))
-    #db.close()
+
 
 
 # Fallback method to rerun analysis on all submissions stored in database, in case of failure half way
 def reanalyze_all():
-    # db = DBHelper()
     db_lines = db.get_all_ids()  # type: int
     log.info("Found {} lines in database".format(len(db_lines)))
     for index in db_lines:
@@ -179,7 +173,7 @@ def reanalyze_all():
             analyze_submission(index)
         except NoResultFound:
             log.warning("analyze_submission failed on db index {0}. Possibly skip in index at write?".format(index))
-    #db.close()
+
 
 
 def main():
