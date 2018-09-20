@@ -34,7 +34,6 @@ ch2.setFormatter(logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(m
 log.addHandler(ch2)
 log.info("Main log set up")
 log.debug("Debug message")
-log.info("Another log message")
 
 # Set severity level of exchangelibs logger
 logging.getLogger('exchangelib').setLevel(logging.WARNING)
@@ -194,12 +193,12 @@ def reanalyze_all():
 
 
 def main():
-    # Credentials for access to mailbox
-    with open(os.path.join(script_directory, 'credentials', 'CREDENTIALS.json')) as j:
-        text = j.readline()
-        d = json.loads(text)
-    credentials = Credentials(username=d["UID"], password=d["PWD"])
-    log.info("Accessing Exchange credentials")
+    # Credentials for access to mailbox - JSON VERSION - DEACTIVATED IN WEB JOB
+    # with open(os.path.join(script_directory, 'credentials', 'CREDENTIALS.json')) as j:
+    #     text = j.readline()
+    #     d = json.loads(text)
+    from credentials import source_box_credentials as outlook
+    credentials = Credentials(username=outlook.username, password=outlook.password)
 
     # Referencing Exchange account to fetch submissions from the projectproposal mailbox
     config_office365 = Configuration(server="outlook.office365.com", credentials=credentials)
