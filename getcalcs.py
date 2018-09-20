@@ -4,6 +4,7 @@ import sys
 import os
 import json
 from logging.handlers import TimedRotatingFileHandler
+from logging import StreamHandler
 from datetime import datetime
 
 from DBhelper_sqla import DBHelper, DuplicateFileWarning, DuplicateMessageWarning
@@ -19,12 +20,16 @@ db = DBHelper()
 script_directory = os.path.dirname(os.path.realpath(__file__))
 log = logging.getLogger("getcalcs-main")
 log.setLevel(logging.INFO)
-ch = TimedRotatingFileHandler(filename=os.path.join(script_directory, config.log_directory, config.main_log_filename),
+ch1 = TimedRotatingFileHandler(filename=os.path.join(script_directory, config.log_directory, config.main_log_filename),
                               when='d', interval=1, backupCount=7)
+ch2 = StreamHandler(stream=sys.stderr)
 # ch = logging.FileHandler(filename=os.path.join(script_directory, config.log_directory, config.main_log_filename))
-ch.setLevel(config.loglevel)
-ch.setFormatter(logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s'))
-log.addHandler(ch)
+ch1.setLevel(config.loglevel)
+ch2.setLevel(config.loglevel)
+ch1.setFormatter(logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s'))
+ch2.setFormatter(logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s'))
+log.addHandler(ch1)
+log.addHandler(ch2)
 log.info("Main log set up")
 log.debug("Debug message")
 log.info("Another log message")
