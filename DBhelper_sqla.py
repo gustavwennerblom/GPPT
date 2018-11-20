@@ -164,7 +164,7 @@ class DBHelper:
             user = os.environ.get('DB_USER')
             password = os.environ.get('DB_PASSWORD')
             host = os.environ.get('DB_HOST')
-            database = os.environ.get('DB_DATABASE')
+            database = os.environ.get('DB_NAME')
             self.engine = create_engine('mssql+pyodbc://{0}:{1}@{2}/{3}?driver=ODBC+Driver+13+for+SQL+Server'
                                         .format(user, password, host, database))
             Base.metadata.create_all(self.engine)
