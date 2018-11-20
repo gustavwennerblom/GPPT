@@ -1,5 +1,6 @@
 import logging
 import config
+import os
 from datetime import datetime
 import credentials.DBcreds as DBcreds
 from sqlalchemy import create_engine
@@ -160,8 +161,12 @@ class DBHelper:
             raise NotImplementedError
 
         elif config.database == 'MSSQL on Azure':
+            user = os.environ.get('DB_USER')
+            password = os.environ.get('DB_PASSWORD')
+            host = os.environ.get('DB_HOST')
+            database = os.environ.get('DB_DATABASE')
             self.engine = create_engine('mssql+pyodbc://{0}:{1}@{2}/{3}?driver=ODBC+Driver+13+for+SQL+Server'
-                                        .format(DBcreds.user, DBcreds.password, DBcreds.host, DBcreds.database))
+                                        .format(user, password, host, database))
             Base.metadata.create_all(self.engine)
             # noinspection PyPep8Naming
             Session = sessionmaker(bind=self.engine)
