@@ -3,6 +3,7 @@ import logging
 import sys
 import os
 import json
+import test_envvars
 from logging.handlers import TimedRotatingFileHandler
 from logging import StreamHandler
 from datetime import datetime
@@ -12,6 +13,7 @@ from exchangelib import Account, Credentials, DELEGATE, Configuration, EWSDateTi
 from excel_parser import ExcelParser, ExcelParsingError
 from sqlalchemy.orm.exc import NoResultFound
 from mailer import LogMailer
+
 
 # Initialize database manager script. May need to be re-initialized on MySQL with aggressive timeout settings
 db = DBHelper()
@@ -197,8 +199,10 @@ def main():
     # with open(os.path.join(script_directory, 'credentials', 'CREDENTIALS.json')) as j:
     #     text = j.readline()
     #     d = json.loads(text)
-    from credentials import source_box_credentials as outlook
-    credentials = Credentials(username=outlook.username, password=outlook.password)
+
+    # from credentials import source_box_credentials as outlook
+    credentials = Credentials(username=os.environ.get('EWS_USERNAME'),
+                              password=os.environ.get('EWS_PASSWORD'))
 
     # Referencing Exchange account to fetch submissions from the projectproposal mailbox
     config_office365 = Configuration(server="outlook.office365.com", credentials=credentials)
@@ -221,7 +225,7 @@ def main():
     else:
         log.info("No new inserts in database. No new analyses to do.")
 
-    # Finally, sending log file as email
+    # Finally, sending log file as email.
     log.info("Commencing log email distribution.")
     log_mailer = LogMailer()
     timestamp = datetime.strftime(datetime.now(), "%Y-%m-%d %H:%M")
@@ -270,6 +274,7 @@ if __name__ == '__main__':
     if len(sys.argv) == 1:
         print("Too few arguments. Use -menu or -update to run")
     if len(sys.argv) == 2:
+        test_envvars.check_exist()      # Perform a check for existence of required environment variables
         if sys.argv[1] == '-menu':
             run_with_start_menu()
         if sys.argv[1] == '-update':
