@@ -5,12 +5,14 @@ from email.mime.text import MIMEText
 from email.mime.base import MIMEBase
 from email import encoders
 import config
+from creds import ses_credentials
 
 
 class LogMailer(object):
     def __init__(self, from_address="gustav@wennerblom.net", to_address=config.log_email_recipient):
-        # self.server = smtplib.SMTP('mailcluster.loopia.se', 587)
-        self.server = smtplib.SMTP('localhost')
+        self.server = smtplib.SMTP(ses_credentials.endpoint)
+        self.server.starttls()
+        self.server.login(user=ses_credentials.username, password=ses_credentials.password)
         self.from_address = from_address
         self.to_address = to_address
 
