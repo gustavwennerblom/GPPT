@@ -1,6 +1,6 @@
 import os
 
-envvars = ['EWS_USERNAME,'
+envvars = ['EWS_USERNAME',
            'EWS_PASSWORD',
            'DB_HOST',
            'DB_NAME',
@@ -19,8 +19,8 @@ def print_envvars():
 def check_exist():
     for envvar in envvars:
         if not os.environ.get(envvar):
-            # print(f'Missing required environment variable {envvar}')
-            raise OSError(f'Missing required environment variable {envvar}')
+            print(f'Missing required environment variable {envvar}')
+            raise OSError('Missing required environment variable')
     return True
 
 
