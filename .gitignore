@@ -1,3 +1,4 @@
+set_envvars.sh
 CREDENTIALS.json
 logs/
 credentials/

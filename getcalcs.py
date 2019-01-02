@@ -281,6 +281,7 @@ def run_with_start_menu():
 
 
 if __name__ == '__main__':
+    print("Initializing")
     if len(sys.argv) == 1:
         print("Too few arguments. Use -menu or -update to run")
     if len(sys.argv) == 2:

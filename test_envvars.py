@@ -19,8 +19,7 @@ def print_envvars():
 def check_exist():
     for envvar in envvars:
         if not os.environ.get(envvar):
-            print(f'Missing required environment variable {envvar}')
-            raise OSError('Missing required environment variable')
+            raise OSError(f'Missing required environment variable {envvar}')
     return True
 
 

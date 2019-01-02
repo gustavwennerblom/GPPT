@@ -208,7 +208,7 @@ class DBHelper:
             #                            'TrustServerCertificate=no;'
             #                            'Connection Timeout=30;')
             connstring = 'Driver={0};Server={1};Database={2};Uid={3};Pwd={4};Encrypt=yes;TrustServerCertificate=no;Connection Timeout=30;'
-            self.conn = pyodbc.connect(connstring.format('{ODBC Driver 13 for SQL Server}',
+            self.conn = pyodbc.connect(connstring.format('{ODBC Driver 17 for SQL Server}',
                                                          DBcreds.host,
                                                          DBcreds.database,
                                                          DBcreds.user,
