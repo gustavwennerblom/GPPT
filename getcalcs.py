@@ -17,7 +17,7 @@ from mailer import LogMailer
 
 
 # Initialize database manager script. May need to be re-initialized on MySQL with aggressive timeout settings
-db = DBHelper()
+# db = DBHelper()
 
 # Initialize and configure log
 script_directory = os.path.dirname(os.path.realpath(__file__))
@@ -195,13 +195,8 @@ def reanalyze_all():
             log.warning("analyze_submission failed on db index {0}. Possibly skip in index at write?".format(index))
 
 
-def main():
-    # Credentials for access to mailbox - JSON VERSION - DEACTIVATED IN WEB JOB
-    # with open(os.path.join(script_directory, 'credentials', 'CREDENTIALS.json')) as j:
-    #     text = j.readline()
-    #     d = json.loads(text)
-
-    # from credentials import source_box_credentials as outlook
+def authenticate_ews():
+    # Get credentials from enviroment variables
     credentials = Credentials(username=os.environ.get('EWS_USERNAME'),
                               password=os.environ.get('EWS_PASSWORD'))
 
@@ -216,6 +211,11 @@ def main():
         log.error(err)
         send_log("GPPT get calcs FAILED")
         sys.exit(1)
+    return account
+
+
+def main():
+    account = authenticate_ews()
 
     # Triggers run on all exchange folders and stores messages in db
     all_new_rows = fetch_all_new_messages(account)
@@ -232,8 +232,6 @@ def main():
     else:
         log.info("No new inserts in database. No new analyses to do.")
 
-    # Finally, sending log file as email.
-    send_log("GPPT get calcs executed")
 
 
 def send_log(subject_text):
@@ -285,11 +283,20 @@ if __name__ == '__main__':
     if len(sys.argv) == 1:
         print("Too few arguments. Use -menu or -update to run")
     if len(sys.argv) == 2:
-        test_envvars.check_exist()      # Perform a check for existence of required environment variables
         if sys.argv[1] == '-menu':
+            test_envvars.check_exist()  # Perform a check for existence of required environment variables
             run_with_start_menu()
-        if sys.argv[1] == '-update':
+        elif sys.argv[1] == '-update':
+            test_envvars.check_exist()  # Perform a check for existence of required environment variables
             main()
+        elif sys.argv[1] == '-authtest':
+            test_account = authenticate_ews()
+            if test_account:
+                print("Successfully authenticated")
+                print(test_account)
+            sys.exit(0)
+        # Finally, sending log file as email.
+        send_log("GPPT get calcs executed")
     else:
         print("Too many arguments")
         sys.exit(0)
